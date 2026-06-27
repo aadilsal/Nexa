@@ -21,7 +21,9 @@ export const auth = betterAuth({
   trustedOrigins: [
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   ],
-  secret: process.env.BETTER_AUTH_SECRET,
+  secret:
+    process.env.BETTER_AUTH_SECRET ??
+    "nexa-dev-secret-change-in-production-min-32-chars",
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
 });
 
