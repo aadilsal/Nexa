@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install
+
+      - run: pnpm --filter @nexa/shared build
+      - run: pnpm --filter @nexa/finance-engine build
+      - run: pnpm --filter @nexa/finance-engine test
+      - run: pnpm --filter @nexa/api exec prisma generate
+      - run: pnpm --filter @nexa/api build
+      - run: pnpm --filter @nexa/web build

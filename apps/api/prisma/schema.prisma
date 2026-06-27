@@ -1,0 +1,309 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CycleStatus {
+  ACTIVE
+  COMPLETED
+  PENDING_CONFIRMATION
+}
+
+enum TransactionEventType {
+  CREATE
+  CORRECTION
+  DELETE
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum Category {
+  FOOD
+  FUEL
+  SHOPPING
+  ENTERTAINMENT
+  UTILITIES
+  HEALTHCARE
+  TRANSPORT
+  HOUSING
+  EDUCATION
+  CHARITY
+  INVESTMENT
+  INCOME
+  OTHER
+}
+
+enum GoalPriority {
+  EMERGENCY_FUND
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  PASSWORD_CHANGE
+  EXPORT_CSV
+  EXPORT_JSON
+  TRANSACTION_CREATE
+  TRANSACTION_CORRECT
+  TRANSACTION_DELETE
+  TRANSACTION_RECATEGORIZE
+  GOAL_CREATE
+  GOAL_UPDATE
+  GOAL_DELETE
+  CYCLE_ROLLOVER_CONFIRM
+  CYCLE_ROLLOVER_ADJUST
+  ACCOUNT_DELETE_REQUEST
+  ACCOUNT_DELETE_CANCEL
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  emailVerified Boolean @default(false)
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  onboardingComplete    Boolean @default(false)
+  primaryPayday         Int?
+  preferredCycleStart   Int?
+
+  encryptedStartingBalance  String?
+  encryptedVariableEstimate String?
+
+  sessions            Session[]
+  accounts            Account[]
+  cycles              FinancialCycle[]
+  goals               Goal[]
+  fixedExpenses       FixedExpense[]
+  incomeExpectations  IncomeExpectation[]
+  encryptionKey       EncryptionKey?
+  auditLogs           AuditLog[]
+  accountDeletion     AccountDeletion?
+  settings            UserSettings?
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String   @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+model EncryptionKey {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  encryptedDek String
+  dekVersion   Int      @default(1)
+  createdAt    DateTime @default(now())
+  rotatedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("encryption_keys")
+}
+
+model FinancialCycle {
+  id        String      @id @default(cuid())
+  userId    String
+  startDate DateTime
+  endDate   DateTime
+  status    CycleStatus @default(ACTIVE)
+
+  encryptedStartingBalance String?
+  encryptedEndingBalance   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactionEvents TransactionEvent[]
+  engineSnapshots   EngineSnapshot[]
+
+  @@index([userId, status])
+  @@index([userId, startDate])
+  @@map("financial_cycles")
+}
+
+model TransactionEvent {
+  id              String               @id @default(cuid())
+  userId          String
+  cycleId         String
+  eventType       TransactionEventType
+  originalEventId String?
+
+  encryptedPayload String
+  previousHash     String
+  eventHash        String
+
+  createdAt DateTime @default(now())
+
+  cycle         FinancialCycle     @relation(fields: [cycleId], references: [id])
+  originalEvent TransactionEvent?  @relation("EventCorrections", fields: [originalEventId], references: [id])
+  corrections   TransactionEvent[] @relation("EventCorrections")
+
+  @@index([cycleId, createdAt])
+  @@index([userId, createdAt])
+  @@map("transaction_events")
+}
+
+model Goal {
+  id         String       @id @default(cuid())
+  userId     String
+  name       String
+  priority   GoalPriority
+  targetDate DateTime
+
+  encryptedTargetAmount  String
+  encryptedCurrentAmount String?
+
+  isEmergencyFund Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@map("goals")
+}
+
+model FixedExpense {
+  id       String   @id @default(cuid())
+  userId   String
+  name     String
+  category Category
+
+  encryptedExpectedAmount String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("fixed_expenses")
+}
+
+model IncomeExpectation {
+  id     String @id @default(cuid())
+  userId String
+  name   String
+
+  encryptedExpectedAmount String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("income_expectations")
+}
+
+model EngineSnapshot {
+  id            String   @id @default(cuid())
+  cycleId       String
+  engineVersion String
+  output        Json
+  calculatedAt  DateTime @default(now())
+
+  cycle FinancialCycle @relation(fields: [cycleId], references: [id])
+
+  @@index([cycleId, calculatedAt])
+  @@map("engine_snapshots")
+}
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  userId    String
+  action    AuditAction
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
+
+model AccountDeletion {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  requestedAt DateTime  @default(now())
+  scheduledFor DateTime
+  cancelledAt DateTime?
+  completedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account_deletions")
+}
+
+model UserSettings {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  weeklyReviewEmail Boolean  @default(true)
+  timezone          String   @default("Asia/Karachi")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
