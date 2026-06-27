@@ -14,4 +14,14 @@ export class DashboardController {
   getDashboard(@Req() req: { userId: string }) {
     return this.dashboardService.getDashboard(req.userId);
   }
+
+  @Get("safe-to-spend")
+  getSafeToSpend(@Req() req: { userId: string }) {
+    return this.dashboardService.getSafeToSpend(req.userId);
+  }
+
+  @Get("health-score")
+  getHealthScore(@Req() req: { userId: string }) {
+    return this.dashboardService.getHealthScore(req.userId);
+  }
 }

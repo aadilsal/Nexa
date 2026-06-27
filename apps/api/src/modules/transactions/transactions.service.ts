@@ -11,6 +11,7 @@ import type {
   TransactionType,
 } from "@nexa/shared";
 import { AuditService } from "../../common/audit/audit.service";
+import { EngineDataService } from "../engine/engine-data.service";
 import { CyclesService } from "../cycles/cycles.service";
 import { LedgerService } from "./ledger.service";
 
@@ -20,6 +21,7 @@ export class TransactionsService {
     private readonly ledger: LedgerService,
     private readonly cycles: CyclesService,
     private readonly audit: AuditService,
+    private readonly engineData: EngineDataService,
   ) {}
 
   parse(rawInput: string): ParsedTransaction {
@@ -94,12 +96,19 @@ export class TransactionsService {
         0,
       );
 
+    const engineDiff = await this.engineData.calculateDiffForNewTransaction(
+      userId,
+      true,
+    );
+
     return {
       transaction: {
         eventId: event.id,
         ...parsed,
       },
       cash: { before: cashBefore, after: cashAfter },
+      safeToSpend: engineDiff.safeToSpend,
+      healthScore: engineDiff.healthScore,
     };
   }
 

@@ -10,11 +10,57 @@ Pakistan's AI-Powered Financial Decision Platform.
 | [Finance Engine Specification](./docs/finance-engine-spec.md) | Formulas, rules, v1.0.0 |
 | [Technical Architecture](./docs/architecture.md) | System design, APIs, schema, security |
 
+## Build Phases
+
+| Phase | Status | Scope |
+|-------|--------|-------|
+| **Phase 0** | ✅ Complete | PRD, engine spec, architecture docs |
+| **Phase 1** | ✅ Complete | Auth, onboarding, cycles, transactions, goals, dashboard shell |
+| **Phase 2** | ✅ Complete | Finance Engine v1.0 — STS, health score, forecasting, variance |
+| **Phase 3** | Pending | AI explanations, Can I Buy This?, weekly reviews |
+| **Phase 4** | Pending | Security hardening, CI/CD, deployment |
+
+---
+
+## Phase 2 — Complete
+
+Full **Finance Engine v1.0** — the single source of truth for all financial numbers.
+
+### Engine modules (`packages/finance-engine`)
+
+| Module | Responsibility |
+|--------|----------------|
+| `parser.ts` | Natural language transaction parsing |
+| `expenses.ts` | Cash position, predicted monthly expenses |
+| `cycle.ts` | Cycle dates, days remaining |
+| `goals.ts` | Priority waterfall, allocation, ETAs |
+| `safe-to-spend.ts` | STS formula with ±15% trend adjustment |
+| `health-score.ts` | Weighted 0–100 health score (5 factors) |
+| `variance.ts` | Expected vs actual income and fixed expenses |
+| `engine.ts` | `calculateEngineOutput()` — orchestrates everything |
+
+### API
+
+- `GET /dashboard` — full `EngineOutput` JSON
+- `GET /dashboard/safe-to-spend` — STS only
+- `GET /dashboard/health-score` — health score only
+- `POST /transactions` — returns STS and health score diff on every log
+
+### Dashboard UI
+
+- **Safe To Spend Today** (flagship metric)
+- **Financial Health Score** (0–100)
+- Income, spent, projected savings with actual vs target rate
+- Emergency fund progress with ETA
+- Goal tracking with on-track / delayed status
+- Variance analysis (expected vs actual fixed expenses)
+- Post-log feedback with STS and health score changes
+
+---
+
 ## Phase 1 — Complete
 
 Monorepo scaffold with authentication, onboarding, financial cycles, transaction logging (immutable ledger), goals, and basic dashboard.
-
-### What's included
 
 - **Monorepo:** Turborepo + pnpm (`apps/web`, `apps/api`, `packages/shared`, `packages/finance-engine`)
 - **Auth:** Better Auth (email/password + Google OAuth ready)
@@ -22,9 +68,9 @@ Monorepo scaffold with authentication, onboarding, financial cycles, transaction
 - **Financial cycles:** Payday-to-payday with automatic rollover
 - **Transactions:** Natural language parser (`Petrol 7550`), immutable hash-chained ledger
 - **Goals:** CRUD with encrypted amounts, emergency fund support
-- **Dashboard:** Cash position, goals progress, transaction list, quick logging
 - **Encryption:** Envelope encryption (KEK → DEK) for financial data
-- **Engine:** Parser + cash position (STS & health score in Phase 2)
+
+---
 
 ## Quick Start
 
@@ -37,20 +83,12 @@ Monorepo scaffold with authentication, onboarding, financial cycles, transaction
 ### Setup
 
 ```bash
-# Clone and install
 pnpm install
-
-# Copy environment variables
 cp .env.example .env
-# Edit .env — set BETTER_AUTH_SECRET and KEK (see .env.example)
+# Set BETTER_AUTH_SECRET and KEK in .env
 
-# Start database
 docker compose -f docker/docker-compose.yml up -d
-
-# Run migrations
 pnpm db:push
-
-# Start dev servers
 pnpm dev
 ```
 
@@ -64,20 +102,20 @@ pnpm dev
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Use output for both `KEK` and `BETTER_AUTH_SECRET` in `.env`.
+---
 
 ## Project Structure
 
 ```
 nexa/
 ├── apps/
-│   ├── web/          # Next.js 15 frontend
-│   └── api/          # NestJS backend
+│   ├── web/                 # Next.js 15 frontend
+│   └── api/                 # NestJS backend
 ├── packages/
-│   ├── shared/       # Zod schemas, constants, types
-│   └── finance-engine/  # Pure TS financial calculations
-├── docs/             # PRD, engine spec, architecture
-└── docker/           # Local Postgres + Redis
+│   ├── shared/              # Zod schemas, constants, types
+│   └── finance-engine/      # Pure TS — Financial Intelligence Engine v1.0
+├── docs/
+└── docker/
 ```
 
 ## Scripts
@@ -86,17 +124,9 @@ nexa/
 |---------|-------------|
 | `pnpm dev` | Start all apps in dev mode |
 | `pnpm build` | Build all packages |
-| `pnpm test` | Run tests |
+| `pnpm test` | Run tests (engine tests are critical) |
 | `pnpm db:push` | Push Prisma schema to database |
 | `pnpm db:studio` | Open Prisma Studio |
-
-## Build Phases
-
-- [x] **Phase 0:** Documentation
-- [x] **Phase 1:** Auth, onboarding, cycles, transactions, goals, dashboard
-- [ ] **Phase 2:** Safe To Spend, Financial Health Score, forecasting engine
-- [ ] **Phase 3:** AI explanations, Can I Buy This?, weekly reviews
-- [ ] **Phase 4:** Security hardening, CI/CD, deployment
 
 ## License
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -27,13 +26,46 @@ interface DashboardData {
     totalExpenses: number;
     currentCashAvailable: number;
   };
+  safeToSpend: {
+    today: number;
+    baseline: number;
+    trendMultiplier: number;
+    discretionaryPool: number;
+  };
+  healthScore: {
+    overall: number;
+    breakdown: {
+      savingsRate: number;
+      emergencyFund: number;
+      goalProgress: number;
+      spendingConsistency: number;
+      incomeStability: number;
+    };
+  };
+  savings: {
+    actualRate: number;
+    targetRate: number;
+    projectedSavings: number;
+  };
   goals: Array<{
     id: string;
     name: string;
     progress: number;
     targetAmount: number;
     isEmergencyFund: boolean;
+    eta: string;
+    onTrack: boolean;
   }>;
+  variance: {
+    income: { expected: number; actual: number; variance: number };
+    fixedExpenses: Array<{
+      name: string;
+      expected: number;
+      actual: number;
+      variance: number;
+    }>;
+  };
+  charity: { thisCycle: number; thisYear: number };
   transactionCount: number;
 }
 
@@ -44,6 +76,13 @@ interface Transaction {
   category: string;
   type: string;
   createdAt: string;
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
 }
 
 export default function DashboardPage() {
@@ -73,17 +112,23 @@ export default function DashboardPage() {
 
   const logMutation = useMutation({
     mutationFn: (input: string) =>
-      api<{ transaction: Transaction; cash: { before: number; after: number } }>(
-        "/transactions",
-        {
-          method: "POST",
-          body: JSON.stringify({ rawInput: input }),
-        },
-      ),
+      api<{
+        transaction: Transaction;
+        cash: { before: number; after: number };
+        safeToSpend: { before: number; after: number };
+        healthScore: { before: number; after: number };
+      }>("/transactions", {
+        method: "POST",
+        body: JSON.stringify({ rawInput: input }),
+      }),
     onSuccess: (data) => {
       setRawInput("");
+      const stsChange =
+        data.safeToSpend.after !== data.safeToSpend.before
+          ? ` Safe To Spend: ${formatPKR(data.safeToSpend.before)} → ${formatPKR(data.safeToSpend.after)}.`
+          : "";
       setFeedback(
-        `Logged ${data.transaction.description}. Cash: ${formatPKR(data.cash.before)} → ${formatPKR(data.cash.after)}`,
+        `Logged ${data.transaction.description}.${stsChange} Health: ${data.healthScore.before} → ${data.healthScore.after}.`,
       );
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -110,14 +155,14 @@ export default function DashboardPage() {
     );
   }
 
+  const emergencyGoal = dashboard?.goals.find((g) => g.isEmergencyFund);
+
   return (
     <main className="mx-auto min-h-screen max-w-4xl px-4 py-8">
       <header className="mb-8 flex items-center justify-between">
         <div>
+          <p className="text-sm text-muted-foreground">{getGreeting()} 👋</p>
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            {session?.user.name ?? session?.user.email}
-          </p>
         </div>
         <Button
           variant="ghost"
@@ -137,47 +182,87 @@ export default function DashboardPage() {
             Starting balance: {formatPKR(dashboard.cash.startingBalance)}. Is
             this correct?
           </CardDescription>
-          <div className="flex gap-3">
-            <Button
-              size="sm"
-              onClick={() =>
-                api("/cycles/confirm-rollover", { method: "POST", body: "{}" })
-                  .then(() =>
-                    queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-                  )
-              }
-            >
-              Confirm
-            </Button>
-            <Link href="/cycles/adjust">
-              <Button variant="outline" size="sm">
-                Adjust
-              </Button>
-            </Link>
-          </div>
+          <Button
+            size="sm"
+            onClick={() =>
+              api("/cycles/confirm-rollover", { method: "POST", body: "{}" }).then(
+                () => queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+              )
+            }
+          >
+            Confirm
+          </Button>
         </Card>
       )}
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardDescription>Cash Available</CardDescription>
-          <p className="mt-1 text-2xl font-bold text-primary">
-            {formatPKR(dashboard?.cash.currentCashAvailable ?? 0)}
+      {/* Hero metrics */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        <Card className="border-primary/20 bg-primary/5">
+          <CardDescription>Safe To Spend Today</CardDescription>
+          <p className="mt-1 text-3xl font-bold text-primary">
+            {formatPKR(dashboard?.safeToSpend.today ?? 0)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Baseline {formatPKR(dashboard?.safeToSpend.baseline ?? 0)}
+            {dashboard?.safeToSpend.trendMultiplier !== 1 &&
+              ` · Trend ×${dashboard?.safeToSpend.trendMultiplier.toFixed(2)}`}
           </p>
         </Card>
         <Card>
+          <CardDescription>Financial Health</CardDescription>
+          <p className="mt-1 text-3xl font-bold">
+            {dashboard?.healthScore.overall ?? 0}
+            <span className="text-lg text-muted-foreground"> / 100</span>
+          </p>
+        </Card>
+      </div>
+
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <Card>
           <CardDescription>Income This Cycle</CardDescription>
-          <p className="mt-1 text-2xl font-bold">
+          <p className="mt-1 text-xl font-bold">
             {formatPKR(dashboard?.cash.totalIncome ?? 0)}
           </p>
         </Card>
         <Card>
-          <CardDescription>Spent This Cycle</CardDescription>
-          <p className="mt-1 text-2xl font-bold">
+          <CardDescription>Spent</CardDescription>
+          <p className="mt-1 text-xl font-bold">
             {formatPKR(dashboard?.cash.totalExpenses ?? 0)}
           </p>
         </Card>
+        <Card>
+          <CardDescription>Projected Savings</CardDescription>
+          <p className="mt-1 text-xl font-bold text-primary">
+            {formatPKR(dashboard?.savings.projectedSavings ?? 0)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {Math.round((dashboard?.savings.actualRate ?? 0) * 100)}% actual ·{" "}
+            {Math.round((dashboard?.savings.targetRate ?? 0) * 100)}% target
+          </p>
+        </Card>
       </div>
+
+      {emergencyGoal && (
+        <Card className="mb-8">
+          <div className="flex items-center justify-between">
+            <CardTitle>Emergency Fund</CardTitle>
+            <span className="text-sm font-medium">{emergencyGoal.progress}%</span>
+          </div>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${Math.min(emergencyGoal.progress, 100)}%` }}
+            />
+          </div>
+          <CardDescription className="mt-2">
+            Target {formatPKR(emergencyGoal.targetAmount)} · ETA{" "}
+            {new Date(emergencyGoal.eta).toLocaleDateString("en-PK", {
+              month: "long",
+              year: "numeric",
+            })}
+          </CardDescription>
+        </Card>
+      )}
 
       <Card className="mb-8">
         <CardTitle className="mb-1">Log expense or income</CardTitle>
@@ -210,11 +295,11 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardTitle className="mb-4">Goals</CardTitle>
-          {dashboard?.goals.length === 0 ? (
+          {!dashboard?.goals.length ? (
             <p className="text-sm text-muted-foreground">No goals yet</p>
           ) : (
             <div className="space-y-4">
-              {dashboard?.goals.map((goal) => (
+              {dashboard.goals.map((goal) => (
                 <div key={goal.id}>
                   <div className="mb-1 flex justify-between text-sm">
                     <span className="font-medium">{goal.name}</span>
@@ -227,7 +312,8 @@ export default function DashboardPage() {
                     />
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Target: {formatPKR(goal.targetAmount)}
+                    {formatPKR(goal.targetAmount)} ·{" "}
+                    {goal.onTrack ? "On track" : "Delayed"}
                   </p>
                 </div>
               ))}
@@ -269,9 +355,34 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {dashboard?.variance.fixedExpenses.some((v) => v.variance !== 0) && (
+        <Card className="mt-6">
+          <CardTitle className="mb-4">Spending vs Expected</CardTitle>
+          <ul className="space-y-2 text-sm">
+            {dashboard.variance.fixedExpenses
+              .filter((v) => v.expected > 0)
+              .map((v) => (
+                <li key={v.name} className="flex justify-between">
+                  <span>{v.name}</span>
+                  <span
+                    className={
+                      v.variance > 0 ? "text-primary" : "text-destructive"
+                    }
+                  >
+                    {v.variance > 0 ? "Under" : "Over"} by{" "}
+                    {formatPKR(Math.abs(v.variance))}
+                  </span>
+                </li>
+              ))}
+          </ul>
+        </Card>
+      )}
+
       <p className="mt-8 text-center text-xs text-muted-foreground">
-        {dashboard?.cycle.daysRemaining ?? 0} days left in cycle · Safe To
-        Spend & Health Score coming in Phase 2
+        {dashboard?.cycle.daysRemaining ?? 0} days left in cycle · Engine v
+        {dashboard?.version}
+        {(dashboard?.charity?.thisCycle ?? 0) > 0 &&
+          ` · Charity this cycle: ${formatPKR(dashboard!.charity.thisCycle)}`}
       </p>
     </main>
   );
