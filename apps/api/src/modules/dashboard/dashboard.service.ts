@@ -1,12 +1,25 @@
 import { Injectable } from "@nestjs/common";
+import { InsightsService } from "../insights/insights.service";
 import { EngineDataService } from "../engine/engine-data.service";
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly engineData: EngineDataService) {}
+  constructor(
+    private readonly engineData: EngineDataService,
+    private readonly insights: InsightsService,
+  ) {}
 
   async getDashboard(userId: string) {
-    return this.engineData.calculateForUser(userId);
+    const engine = await this.engineData.calculateForUser(userId);
+    let insight: string | null = null;
+
+    try {
+      insight = await this.insights.getDashboardInsight(userId);
+    } catch {
+      insight = null;
+    }
+
+    return { ...engine, insight };
   }
 
   async getSafeToSpend(userId: string) {

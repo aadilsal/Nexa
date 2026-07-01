@@ -17,12 +17,87 @@ Pakistan's AI-Powered Financial Decision Platform.
 | **Phase 0** | ✅ Complete | PRD, engine spec, architecture docs |
 | **Phase 1** | ✅ Complete | Auth, onboarding, cycles, transactions, goals, dashboard shell |
 | **Phase 2** | ✅ Complete | Finance Engine v1.0 — STS, health score, forecasting, variance |
-| **Phase 3** | Pending | AI explanations, Can I Buy This?, weekly reviews |
-| **Phase 4** | Pending | Security hardening, CI/CD, deployment |
+| **Phase 3** | ✅ Complete | AI (Groq), Can I Buy This?, financial chat, weekly reviews + email, Redis |
+| **Phase 4** | ✅ Complete | Auth hardening, profile, export/delete, PostHog, CI/CD, deployment |
 
 ---
 
-## Phase 2 — Complete
+---
+
+## Phase 4 — Complete
+
+Production hardening: auth upgrades, profile management, data export/deletion, analytics, and deploy pipeline.
+
+### Auth (`apps/web`)
+
+- Email/password with **email verification** on signup
+- **Magic link** on login and signup (URLs logged to Next.js console in dev)
+- **Passkeys** via `@better-auth/passkey`; dismissible prompt after first login
+- Forgot/reset password with **session revocation** on reset
+- Resend for transactional email
+
+### Profile (`/profile`)
+
+- Account name, email verification status, timezone, weekly email toggle
+- **Security** — passkeys, password reset
+- **Data & privacy** — JSON/CSV export (3/hour rate limit), 30-day account deletion grace
+- **Activity** — audit log viewer
+
+### API
+
+- `GET/PATCH /users/me`, `PATCH /users/settings`
+- `GET /export/json`, `GET /export/csv`
+- `DELETE /account`, `POST /account/cancel-deletion`, `POST /account/purge-expired` (cron)
+- `GET /audit-logs`
+- Transaction recategorization (`PATCH /transactions/:id/category`)
+
+### Frontend
+
+- PostHog analytics (PRD events)
+- Dashboard transaction recategorization
+- Passkey prompt modal on first visit
+
+### Deploy
+
+- `docker/Dockerfile.api` for Render
+- `.github/workflows/deploy.yml` — build + test on push to `main`
+
+### Local email testing
+
+With `RESEND_API_KEY` set, emails are sent to your inbox. In development, every auth URL is also printed in the **Next.js server terminal** — copy/paste into the browser on localhost.
+
+---
+
+## Phase 3 — Complete
+
+AI layer, purchase simulation, financial chat, and weekly reviews.
+
+### Engine (`packages/finance-engine`)
+
+| Module | Responsibility |
+|--------|----------------|
+| `purchase-simulation.ts` | Can I Buy This? rules R1–R4 + `suggestedWaitUntil` |
+| `weekly-review.ts` | Calendar week stats (Mon–Sun) |
+| `goal-persistence.ts` | Cycle-end goal surplus waterfall |
+
+### API
+
+- `POST /simulations/purchase` — purchase simulation + AI explanation
+- `GET /ai/insight` — dashboard insight
+- `POST /ai/chat` — financial chat (engine-grounded)
+- `GET /reviews/weekly` — in-app weekly review
+- `POST /reviews/weekly/send` — cron endpoint for Resend emails
+- Redis caching (engine output, rate limits)
+
+### Frontend
+
+- Parse preview → confirm → log flow
+- Can I Buy This?, Weekly Review, Financial Chat pages
+- Today's Insight on dashboard
+- Motion animations + Sonner toasts
+- Freelancer `preferredCycleStart` in onboarding
+
+---
 
 Full **Finance Engine v1.0** — the single source of truth for all financial numbers.
 
@@ -63,7 +138,7 @@ Full **Finance Engine v1.0** — the single source of truth for all financial nu
 Monorepo scaffold with authentication, onboarding, financial cycles, transaction logging (immutable ledger), goals, and basic dashboard.
 
 - **Monorepo:** Turborepo + pnpm (`apps/web`, `apps/api`, `packages/shared`, `packages/finance-engine`)
-- **Auth:** Better Auth (email/password + Google OAuth ready)
+- **Auth:** Better Auth (email/password, magic link, passkeys — no Google OAuth)
 - **Onboarding:** Income, expenses, variable spending, emergency fund auto-creation
 - **Financial cycles:** Payday-to-payday with automatic rollover
 - **Transactions:** Natural language parser (`Petrol 7550`), immutable hash-chained ledger

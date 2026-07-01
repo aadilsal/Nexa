@@ -12,6 +12,7 @@ import type {
 } from "@nexa/shared";
 import { AuditService } from "../../common/audit/audit.service";
 import { EngineDataService } from "../engine/engine-data.service";
+import { InsightsService } from "../insights/insights.service";
 import { CyclesService } from "../cycles/cycles.service";
 import { LedgerService } from "./ledger.service";
 
@@ -22,6 +23,7 @@ export class TransactionsService {
     private readonly cycles: CyclesService,
     private readonly audit: AuditService,
     private readonly engineData: EngineDataService,
+    private readonly insights: InsightsService,
   ) {}
 
   parse(rawInput: string): ParsedTransaction {
@@ -70,6 +72,8 @@ export class TransactionsService {
       category: parsed.category,
     });
 
+    await this.engineData.invalidateUserCache(userId);
+
     const startingBalance = await this.cycles.getStartingBalance(
       userId,
       cycle.id,
@@ -101,6 +105,21 @@ export class TransactionsService {
       true,
     );
 
+    let insight: string | null = null;
+    try {
+      insight = await this.insights.getPostLogInsight(userId, {
+        safeToSpend: engineDiff.safeToSpend,
+        healthScore: engineDiff.healthScore,
+        transaction: {
+          description: parsed.description,
+          amount: parsed.amount,
+          category: parsed.category,
+        },
+      });
+    } catch {
+      insight = null;
+    }
+
     return {
       transaction: {
         eventId: event.id,
@@ -109,6 +128,8 @@ export class TransactionsService {
       cash: { before: cashBefore, after: cashAfter },
       safeToSpend: engineDiff.safeToSpend,
       healthScore: engineDiff.healthScore,
+      goalImpact: engineDiff.goalImpact,
+      insight,
     };
   }
 
@@ -163,6 +184,7 @@ export class TransactionsService {
     );
 
     await this.audit.log(userId, "TRANSACTION_CORRECT", { eventId });
+    await this.engineData.invalidateUserCache(userId);
 
     return { correctionEventId: event.id, transaction: payload };
   }
@@ -192,6 +214,7 @@ export class TransactionsService {
     );
 
     await this.audit.log(userId, "TRANSACTION_DELETE", { eventId });
+    await this.engineData.invalidateUserCache(userId);
 
     return { deleteEventId: event.id };
   }

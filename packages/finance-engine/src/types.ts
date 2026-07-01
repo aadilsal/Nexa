@@ -1,4 +1,8 @@
 import type { Category, GoalPriority, TransactionType } from "@nexa/shared";
+import type { CashFlowForecast } from "./cash-flow-forecast.js";
+import type { GoalRisk } from "./goal-risk.js";
+import type { CategorySpendingTrend } from "./spending-trend.js";
+import type { BudgetStatus } from "./variance.js";
 
 export interface EngineTransaction {
   amount: number;
@@ -87,6 +91,7 @@ export interface EngineOutput {
     baseline: number;
     trendMultiplier: number;
     discretionaryPool: number;
+    unclampedDiscretionaryPool: number;
   };
   healthScore: {
     overall: number;
@@ -118,7 +123,17 @@ export interface EngineOutput {
       actual: number;
       variance: number;
     }>;
+    categories: Array<{
+      category: Category;
+      expected: number;
+      actual: number;
+      variance: number;
+      status: BudgetStatus;
+    }>;
   };
+  spendingTrends: CategorySpendingTrend[];
+  cashFlowForecast: CashFlowForecast;
+  goalRisks: GoalRisk[];
   charity: {
     thisCycle: number;
     thisYear: number;
@@ -129,4 +144,10 @@ export interface EngineOutput {
 export interface PostLogEngineDiff {
   safeToSpend: { before: number; after: number };
   healthScore: { before: number; after: number };
+  goalImpact: Array<{
+    goalName: string;
+    etaBefore: string;
+    etaAfter: string;
+    stillOnTrack: boolean;
+  }>;
 }

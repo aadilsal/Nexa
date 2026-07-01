@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
+import { captureEvent } from "@/lib/posthog";
 import { formatPKR } from "@/lib/utils";
 
 interface FixedExpenseRow {
@@ -26,6 +27,8 @@ export default function OnboardingPage() {
   const [error, setError] = useState("");
 
   const [primaryPayday, setPrimaryPayday] = useState(5);
+  const [preferredCycleStart, setPreferredCycleStart] = useState(1);
+  const [isFreelancer, setIsFreelancer] = useState(false);
   const [startingBalance, setStartingBalance] = useState(0);
   const [variableEstimate, setVariableEstimate] = useState(30000);
 
@@ -39,9 +42,41 @@ export default function OnboardingPage() {
     { name: "Internet", category: "UTILITIES", expectedAmount: 5000 },
   ]);
 
-  const recurringTotal = expenses.reduce((s, e) => s + e.expectedAmount, 0);
-  const predictedMonthly = recurringTotal + variableEstimate;
-  const emergencyTarget = predictedMonthly * 3;
+  const [predictedMonthly, setPredictedMonthly] = useState(0);
+  const [emergencyTarget, setEmergencyTarget] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPreview() {
+      try {
+        const data = await api<{
+          predictedMonthly: number;
+          emergencyFundTarget: number;
+        }>("/onboarding/preview", {
+          method: "POST",
+          body: JSON.stringify({
+            variableEstimate,
+            fixedExpenses: expenses,
+          }),
+        });
+        if (!cancelled) {
+          setPredictedMonthly(data.predictedMonthly);
+          setEmergencyTarget(data.emergencyFundTarget);
+        }
+      } catch {
+        if (!cancelled) {
+          setPredictedMonthly(0);
+          setEmergencyTarget(0);
+        }
+      }
+    }
+
+    void loadPreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [expenses, variableEstimate]);
 
   async function handleComplete() {
     setLoading(true);
@@ -51,7 +86,8 @@ export default function OnboardingPage() {
       await api("/onboarding/complete", {
         method: "POST",
         body: JSON.stringify({
-          primaryPayday,
+          primaryPayday: isFreelancer ? undefined : primaryPayday,
+          preferredCycleStart: isFreelancer ? preferredCycleStart : undefined,
           startingBalance,
           variableEstimate,
           fixedExpenses: expenses,
@@ -59,6 +95,7 @@ export default function OnboardingPage() {
           emergencyFundTarget: emergencyTarget,
         }),
       });
+      captureEvent("onboarding_completed");
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Onboarding failed");
@@ -78,22 +115,60 @@ export default function OnboardingPage() {
         <Card>
           <CardTitle className="mb-1">Income & payday</CardTitle>
           <CardDescription className="mb-6">
-            When do you usually receive your salary?
+            {isFreelancer
+              ? "Choose when your financial cycle starts each month."
+              : "When do you usually receive your salary?"}
           </CardDescription>
 
           <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium">
-                Primary payday (day of month)
-              </label>
-              <Input
-                type="number"
-                min={1}
-                max={31}
-                value={primaryPayday}
-                onChange={(e) => setPrimaryPayday(Number(e.target.value))}
-              />
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={!isFreelancer ? "default" : "outline"}
+                onClick={() => setIsFreelancer(false)}
+              >
+                Salaried
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={isFreelancer ? "default" : "outline"}
+                onClick={() => setIsFreelancer(true)}
+              >
+                Freelancer
+              </Button>
             </div>
+
+            {!isFreelancer ? (
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Primary payday (day of month)
+                </label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={primaryPayday}
+                  onChange={(e) => setPrimaryPayday(Number(e.target.value))}
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Preferred cycle start (day of month)
+                </label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={preferredCycleStart}
+                  onChange={(e) =>
+                    setPreferredCycleStart(Number(e.target.value))
+                  }
+                />
+              </div>
+            )}
 
             {incomes.map((income, i) => (
               <div key={i} className="grid grid-cols-2 gap-3">
@@ -225,8 +300,12 @@ export default function OnboardingPage() {
 
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Payday</span>
-              <span>{primaryPayday}th of each month</span>
+              <span className="text-muted-foreground">Cycle anchor</span>
+              <span>
+                {isFreelancer
+                  ? `${preferredCycleStart}th (freelancer)`
+                  : `${primaryPayday}th payday`}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Predicted monthly expenses</span>

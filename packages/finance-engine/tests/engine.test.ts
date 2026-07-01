@@ -103,6 +103,9 @@ describe("calculateHealthScore", () => {
       transactions: [],
       expectedIncome: 170000,
       completedCyclesCount: 0,
+      predictedMonthlyExpenses: 70000,
+      daysElapsed: 20,
+      totalCycleDays: 30,
     });
 
     // With empty goals, uses defaults for goal progress
@@ -165,5 +168,10 @@ describe("calculateEngineOutput", () => {
     expect(output.healthScore.overall).toBeGreaterThan(0);
     expect(output.goals).toHaveLength(1);
     expect(output.expenses.predictedMonthly).toBe(70000);
+    expect(output.spendingTrends).toBeDefined();
+    expect(output.cashFlowForecast).toBeDefined();
+    expect(output.goalRisks).toBeDefined();
+    expect(output.variance.categories).toBeDefined();
+    expect(output.safeToSpend.unclampedDiscretionaryPool).toBeDefined();
   });
 });

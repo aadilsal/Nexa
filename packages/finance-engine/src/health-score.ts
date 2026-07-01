@@ -11,6 +11,9 @@ export interface HealthScoreInput {
   transactions: EngineTransaction[];
   expectedIncome: number;
   completedCyclesCount: number;
+  predictedMonthlyExpenses: number;
+  daysElapsed: number;
+  totalCycleDays: number;
 }
 
 export interface HealthScoreResult {
@@ -22,6 +25,29 @@ export interface HealthScoreResult {
     spendingConsistency: number;
     incomeStability: number;
   };
+}
+
+function scoreSpendingVsPredicted(
+  actualExpenses: number,
+  predictedMonthly: number,
+  daysElapsed: number,
+  totalCycleDays: number,
+): number | null {
+  if (predictedMonthly <= 0 || daysElapsed <= 0 || totalCycleDays <= 0) {
+    return null;
+  }
+
+  const expectedToDate = predictedMonthly * (daysElapsed / totalCycleDays);
+  if (expectedToDate <= 0) return null;
+
+  const varianceRatio =
+    Math.abs(actualExpenses - expectedToDate) / expectedToDate;
+
+  if (varianceRatio <= 0.1) return 100;
+  if (varianceRatio <= 0.2) return 80;
+  if (varianceRatio <= 0.35) return 60;
+  if (varianceRatio <= 0.5) return 40;
+  return 20;
 }
 
 function scoreSpendingConsistency(transactions: EngineTransaction[]): number {
@@ -69,6 +95,9 @@ export function calculateHealthScore(input: HealthScoreInput): HealthScoreResult
     transactions,
     expectedIncome,
     completedCyclesCount,
+    predictedMonthlyExpenses,
+    daysElapsed,
+    totalCycleDays,
   } = input;
 
   const actualSavingsRate =
@@ -92,10 +121,17 @@ export function calculateHealthScore(input: HealthScoreInput): HealthScoreResult
       : 0;
   const goalProgressScore = scoreByProgress(avgProgress);
 
-  const spendingConsistencyScore =
+  const predictedScore = scoreSpendingVsPredicted(
+    totalExpenses,
+    predictedMonthlyExpenses,
+    daysElapsed,
+    totalCycleDays,
+  );
+  const cvScore =
     completedCyclesCount >= 1
       ? scoreSpendingConsistency(transactions)
       : 70;
+  const spendingConsistencyScore = predictedScore ?? cvScore;
 
   const incomeStabilityScore = scoreIncomeStability(
     totalIncome,

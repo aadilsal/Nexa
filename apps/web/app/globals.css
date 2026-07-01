@@ -23,6 +23,11 @@
   --color-card: var(--card);
   --color-destructive: var(--destructive);
   --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", monospace;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
 }
 
 body {

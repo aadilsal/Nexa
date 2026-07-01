@@ -4,7 +4,7 @@ import {
   calculatePredictedMonthlyExpenses,
   suggestEmergencyFundTarget,
 } from "@nexa/finance-engine";
-import type { OnboardingInput } from "@nexa/shared";
+import type { OnboardingInput, OnboardingPreviewInput } from "@nexa/shared";
 import { PrismaService } from "../../common/prisma/prisma.module";
 import { UserEncryptionService } from "../../common/encryption/user-encryption.service";
 import { CyclesService } from "../cycles/cycles.service";
@@ -23,6 +23,20 @@ export class OnboardingService {
       select: { onboardingComplete: true },
     });
     return { complete: user.onboardingComplete };
+  }
+
+  preview(input: OnboardingPreviewInput) {
+    const recurringTotal = input.fixedExpenses.reduce(
+      (sum, e) => sum + e.expectedAmount,
+      0,
+    );
+    const predictedMonthly = calculatePredictedMonthlyExpenses({
+      recurringTotal,
+      variableEstimate: input.variableEstimate,
+      completedCyclesCount: 0,
+    });
+    const emergencyFundTarget = suggestEmergencyFundTarget(predictedMonthly);
+    return { predictedMonthly, emergencyFundTarget, recurringTotal };
   }
 
   async complete(userId: string, input: OnboardingInput) {

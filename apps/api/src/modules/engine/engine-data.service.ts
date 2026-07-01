@@ -5,10 +5,13 @@ import {
   type EngineInput,
   type EngineOutput,
 } from "@nexa/finance-engine";
+import { RedisService } from "../../common/redis/redis.service";
 import { PrismaService } from "../../common/prisma/prisma.module";
 import { UserEncryptionService } from "../../common/encryption/user-encryption.service";
 import { CyclesService } from "../cycles/cycles.service";
 import { LedgerService } from "../transactions/ledger.service";
+
+const ENGINE_CACHE_TTL = 300;
 
 @Injectable()
 export class EngineDataService {
@@ -17,6 +20,7 @@ export class EngineDataService {
     private readonly userEncryption: UserEncryptionService,
     private readonly cycles: CyclesService,
     private readonly ledger: LedgerService,
+    private readonly redis: RedisService,
   ) {}
 
   async buildEngineInput(userId: string): Promise<EngineInput> {
@@ -138,8 +142,44 @@ export class EngineDataService {
   }
 
   async calculateForUser(userId: string): Promise<EngineOutput> {
+    const cycle = await this.cycles.getOrCreateActiveCycle(userId);
+    const cacheKey = `engine:${userId}:${cycle.id}`;
+    const cached = await this.redis.get(cacheKey);
+
+    if (cached) {
+      return JSON.parse(cached) as EngineOutput;
+    }
+
     const input = await this.buildEngineInput(userId);
-    return calculateEngineOutput(input);
+    const output = calculateEngineOutput(input);
+    await this.redis.set(cacheKey, JSON.stringify(output), ENGINE_CACHE_TTL);
+
+    await this.prisma.engineSnapshot.create({
+      data: {
+        cycleId: cycle.id,
+        engineVersion: output.version,
+        output: JSON.parse(JSON.stringify(output)),
+      },
+    });
+
+    return output;
+  }
+
+  async calculateAtDate(
+    userId: string,
+    asOf: Date,
+    transactions: EngineInput["transactions"],
+  ): Promise<EngineOutput> {
+    const input = await this.buildEngineInput(userId);
+    return calculateEngineOutput({
+      ...input,
+      transactions,
+      today: asOf,
+    });
+  }
+
+  async invalidateUserCache(userId: string): Promise<void> {
+    await this.redis.delPattern(`engine:${userId}:`);
   }
 
   async calculateDiffForNewTransaction(
@@ -160,8 +200,20 @@ export class EngineDataService {
 
     const after = calculateEngineOutput(input);
     return {
-      safeToSpend: { before: after.safeToSpend.today, after: after.safeToSpend.today },
-      healthScore: { before: after.healthScore.overall, after: after.healthScore.overall },
+      safeToSpend: {
+        before: after.safeToSpend.today,
+        after: after.safeToSpend.today,
+      },
+      healthScore: {
+        before: after.healthScore.overall,
+        after: after.healthScore.overall,
+      },
+      goalImpact: after.goals.map((g) => ({
+        goalName: g.name,
+        etaBefore: g.eta,
+        etaAfter: g.eta,
+        stillOnTrack: g.onTrack,
+      })),
     };
   }
 

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
 import { ApiCookieAuth, ApiTags } from "@nestjs/swagger";
-import { OnboardingSchema } from "@nexa/shared";
+import { OnboardingPreviewSchema, OnboardingSchema } from "@nexa/shared";
 import { SessionGuard } from "../auth/session.guard";
 import { OnboardingService } from "./onboarding.service";
 
@@ -14,6 +14,12 @@ export class OnboardingController {
   @Get("status")
   getStatus(@Req() req: { userId: string }) {
     return this.onboardingService.getStatus(req.userId);
+  }
+
+  @Post("preview")
+  preview(@Body() body: unknown) {
+    const input = OnboardingPreviewSchema.parse(body);
+    return this.onboardingService.preview(input);
   }
 
   @Post("complete")

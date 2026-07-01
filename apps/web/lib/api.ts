@@ -54,3 +54,25 @@ export async function api<T>(
 
   return response.json() as Promise<T>;
 }
+
+export async function apiText(path: string, options: RequestInit = {}): Promise<string> {
+  const authHeaders = await getAuthHeaders();
+
+  const response = await fetch(`${API_URL}${path}`, {
+    ...options,
+    credentials: "include",
+    headers: {
+      ...authHeaders,
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Request failed" }));
+    throw new ApiError(response.status, error.message ?? "Request failed");
+  }
+
+  return response.text();
+}

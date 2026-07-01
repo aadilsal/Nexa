@@ -1,0 +1,30 @@
+{
+  "name": "@nexa/emails",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "tsc --noEmit",
+    "preview": "email dev --dir src"
+  },
+  "dependencies": {
+    "@react-email/components": "^0.0.41",
+    "@react-email/render": "^1.1.2",
+    "@react-email/tailwind": "^1.0.5",
+    "react": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "react-email": "^4.0.16",
+    "typescript": "^5.8.3"
+  }
+}

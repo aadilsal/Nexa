@@ -9,20 +9,26 @@ export function calculateDayOfWeekMultipliers(
 ): Record<number, number> | null {
   if (historicalCycles.length < minCycles) return null;
 
-  const spendByDay: number[] = Array(DAY_NAMES).fill(0);
-  const countByDay: number[] = Array(DAY_NAMES).fill(0);
+  const dailyTotalsByDow: number[][] = Array.from({ length: DAY_NAMES }, () => []);
 
   for (const cycle of historicalCycles) {
+    const dailySpend = new Map<string, number>();
     for (const tx of cycle.transactions) {
       if (tx.type !== "EXPENSE") continue;
-      const day = getDayOfWeek(tx.createdAt);
-      spendByDay[day] += tx.amount;
-      countByDay[day] += 1;
+      const key = tx.createdAt.toISOString().slice(0, 10);
+      dailySpend.set(key, (dailySpend.get(key) ?? 0) + tx.amount);
+    }
+
+    for (const [dateKey, amount] of dailySpend) {
+      const day = getDayOfWeek(new Date(dateKey));
+      dailyTotalsByDow[day].push(amount);
     }
   }
 
-  const avgByDay = spendByDay.map((total, i) =>
-    countByDay[i] > 0 ? total / countByDay[i] : 0,
+  const avgByDay = dailyTotalsByDow.map((totals) =>
+    totals.length > 0
+      ? totals.reduce((a, b) => a + b, 0) / totals.length
+      : 0,
   );
 
   const nonZero = avgByDay.filter((v) => v > 0);
@@ -68,6 +74,7 @@ export interface SafeToSpendResult {
   baseline: number;
   trendMultiplier: number;
   discretionaryPool: number;
+  unclampedDiscretionaryPool: number;
 }
 
 export function calculateSafeToSpend(input: SafeToSpendInput): SafeToSpendResult {
@@ -101,13 +108,13 @@ export function calculateSafeToSpend(input: SafeToSpendInput): SafeToSpendResult
     emergencyFundProtection = Math.min(remainingEmergencyNeeded, proratedEmergency);
   }
 
-  const discretionaryPool = Math.max(
-    0,
+  const unclampedDiscretionaryPool =
     currentCashAvailable -
-      remainingFixedExpenses -
-      remainingGoalContributions -
-      emergencyFundProtection,
-  );
+    remainingFixedExpenses -
+    remainingGoalContributions -
+    emergencyFundProtection;
+
+  const discretionaryPool = Math.max(0, unclampedDiscretionaryPool);
 
   const effectiveDaysRemaining = Math.max(daysRemaining, 1);
   const baseline =
@@ -124,6 +131,7 @@ export function calculateSafeToSpend(input: SafeToSpendInput): SafeToSpendResult
     baseline: roundPKR(Math.max(0, baseline)),
     trendMultiplier,
     discretionaryPool,
+    unclampedDiscretionaryPool: roundPKR(unclampedDiscretionaryPool),
   };
 }
 

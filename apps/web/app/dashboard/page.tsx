@@ -1,18 +1,23 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { AppNav } from "@/components/app-nav";
+import { PasskeyPrompt, usePasskeyPrompt } from "@/components/passkey-prompt";
+import { RecategorizeSelect } from "@/components/recategorize-select";
+import { TransactionLogger } from "@/components/transaction-logger";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { signOut, useSession } from "@/lib/auth-client";
+import { captureEvent } from "@/lib/posthog";
 import { formatPKR } from "@/lib/utils";
 
 interface DashboardData {
   version: string;
-  calculatedAt: string;
+  insight: string | null;
   cycle: {
     id: string;
     startDate: string;
@@ -30,17 +35,9 @@ interface DashboardData {
     today: number;
     baseline: number;
     trendMultiplier: number;
-    discretionaryPool: number;
   };
   healthScore: {
     overall: number;
-    breakdown: {
-      savingsRate: number;
-      emergencyFund: number;
-      goalProgress: number;
-      spendingConsistency: number;
-      incomeStability: number;
-    };
   };
   savings: {
     actualRate: number;
@@ -57,16 +54,13 @@ interface DashboardData {
     onTrack: boolean;
   }>;
   variance: {
-    income: { expected: number; actual: number; variance: number };
     fixedExpenses: Array<{
       name: string;
       expected: number;
-      actual: number;
       variance: number;
     }>;
   };
   charity: { thisCycle: number; thisYear: number };
-  transactionCount: number;
 }
 
 interface Transaction {
@@ -89,8 +83,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session, isPending: sessionLoading } = useSession();
-  const [rawInput, setRawInput] = useState("");
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const { show: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } =
+    usePasskeyPrompt();
 
   const { data: onboarding } = useQuery({
     queryKey: ["onboarding-status"],
@@ -110,47 +104,29 @@ export default function DashboardPage() {
     enabled: !!session && onboarding?.complete === true,
   });
 
-  const logMutation = useMutation({
-    mutationFn: (input: string) =>
-      api<{
-        transaction: Transaction;
-        cash: { before: number; after: number };
-        safeToSpend: { before: number; after: number };
-        healthScore: { before: number; after: number };
-      }>("/transactions", {
-        method: "POST",
-        body: JSON.stringify({ rawInput: input }),
-      }),
-    onSuccess: (data) => {
-      setRawInput("");
-      const stsChange =
-        data.safeToSpend.after !== data.safeToSpend.before
-          ? ` Safe To Spend: ${formatPKR(data.safeToSpend.before)} → ${formatPKR(data.safeToSpend.after)}.`
-          : "";
-      setFeedback(
-        `Logged ${data.transaction.description}.${stsChange} Health: ${data.healthScore.before} → ${data.healthScore.after}.`,
-      );
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-    },
-  });
-
   useEffect(() => {
-    if (!sessionLoading && !session) {
-      router.push("/login");
-    }
+    if (!sessionLoading && !session) router.push("/login");
   }, [session, sessionLoading, router]);
 
   useEffect(() => {
-    if (onboarding && !onboarding.complete) {
-      router.push("/onboarding");
-    }
+    if (onboarding && !onboarding.complete) router.push("/onboarding");
   }, [onboarding, router]);
+
+  useEffect(() => {
+    if (dashboard) {
+      captureEvent("safe_to_spend_viewed");
+      if (dashboard.insight) captureEvent("ai_insight_viewed");
+    }
+  }, [dashboard]);
 
   if (sessionLoading || isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+      <main className="mx-auto max-w-4xl px-4 py-8">
+        <div className="mb-8 h-8 w-48 animate-pulse rounded bg-muted" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="h-32 animate-pulse rounded-lg bg-muted" />
+          <div className="h-32 animate-pulse rounded-lg bg-muted" />
+        </div>
       </main>
     );
   }
@@ -159,7 +135,8 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-4xl px-4 py-8">
-      <header className="mb-8 flex items-center justify-between">
+      <PasskeyPrompt open={showPasskeyPrompt} onDismiss={dismissPasskeyPrompt} />
+      <header className="mb-4 flex items-center justify-between">
         <div>
           <p className="text-sm text-muted-foreground">{getGreeting()} 👋</p>
           <h1 className="text-2xl font-bold">Dashboard</h1>
@@ -174,6 +151,8 @@ export default function DashboardPage() {
           Sign out
         </Button>
       </header>
+
+      <AppNav />
 
       {dashboard?.cycle.status === "PENDING_CONFIRMATION" && (
         <Card className="mb-6 border-primary/30 bg-primary/5">
@@ -195,11 +174,23 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Hero metrics */}
+      {dashboard?.insight && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          <Card className="mb-6 border-primary/20">
+            <CardDescription>Today&apos;s Insight</CardDescription>
+            <p className="mt-2 text-sm leading-relaxed">{dashboard.insight}</p>
+          </Card>
+        </motion.div>
+      )}
+
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <Card className="border-primary/20 bg-primary/5">
           <CardDescription>Safe To Spend Today</CardDescription>
-          <p className="mt-1 text-3xl font-bold text-primary">
+          <p className="mt-1 font-mono text-3xl font-bold text-primary">
             {formatPKR(dashboard?.safeToSpend.today ?? 0)}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -220,19 +211,19 @@ export default function DashboardPage() {
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
         <Card>
           <CardDescription>Income This Cycle</CardDescription>
-          <p className="mt-1 text-xl font-bold">
+          <p className="mt-1 font-mono text-xl font-bold">
             {formatPKR(dashboard?.cash.totalIncome ?? 0)}
           </p>
         </Card>
         <Card>
           <CardDescription>Spent</CardDescription>
-          <p className="mt-1 text-xl font-bold">
+          <p className="mt-1 font-mono text-xl font-bold">
             {formatPKR(dashboard?.cash.totalExpenses ?? 0)}
           </p>
         </Card>
         <Card>
           <CardDescription>Projected Savings</CardDescription>
-          <p className="mt-1 text-xl font-bold text-primary">
+          <p className="mt-1 font-mono text-xl font-bold text-primary">
             {formatPKR(dashboard?.savings.projectedSavings ?? 0)}
           </p>
           <p className="text-xs text-muted-foreground">
@@ -249,9 +240,11 @@ export default function DashboardPage() {
             <span className="text-sm font-medium">{emergencyGoal.progress}%</span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-all"
-              style={{ width: `${Math.min(emergencyGoal.progress, 100)}%` }}
+            <motion.div
+              className="h-full rounded-full bg-primary"
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(emergencyGoal.progress, 100)}%` }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             />
           </div>
           <CardDescription className="mt-2">
@@ -264,33 +257,7 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      <Card className="mb-8">
-        <CardTitle className="mb-1">Log expense or income</CardTitle>
-        <CardDescription className="mb-4">
-          Try: Petrol 7550 · Salary 120000 · Charity 1000
-        </CardDescription>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (rawInput.trim()) logMutation.mutate(rawInput.trim());
-          }}
-          className="flex gap-3"
-        >
-          <Input
-            value={rawInput}
-            onChange={(e) => setRawInput(e.target.value)}
-            placeholder="Description amount"
-            className="flex-1"
-            autoFocus
-          />
-          <Button type="submit" disabled={logMutation.isPending}>
-            {logMutation.isPending ? "..." : "Log"}
-          </Button>
-        </form>
-        {feedback && (
-          <p className="mt-3 text-sm text-primary">{feedback}</p>
-        )}
-      </Card>
+      <TransactionLogger />
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
@@ -307,7 +274,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-primary transition-all"
+                      className="h-full rounded-full bg-primary transition-all duration-300"
                       style={{ width: `${Math.min(goal.progress, 100)}%` }}
                     />
                   </div>
@@ -336,15 +303,17 @@ export default function DashboardPage() {
                 >
                   <div>
                     <p className="font-medium">{tx.description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {tx.category} · {tx.type}
-                    </p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <RecategorizeSelect
+                        transactionId={tx.id}
+                        category={tx.category}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {tx.type}
+                      </span>
+                    </div>
                   </div>
-                  <span
-                    className={
-                      tx.type === "INCOME" ? "text-primary" : "text-foreground"
-                    }
-                  >
+                  <span className="font-mono">
                     {tx.type === "INCOME" ? "+" : "-"}
                     {formatPKR(tx.amount)}
                   </span>

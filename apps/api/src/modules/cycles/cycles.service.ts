@@ -1,16 +1,20 @@
-import { Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import {
   computeCycleDates,
   computeNextCycleDates,
+  computePersistedGoalAmounts,
 } from "@nexa/finance-engine";
 import { PrismaService } from "../../common/prisma/prisma.module";
 import { UserEncryptionService } from "../../common/encryption/user-encryption.service";
+import { LedgerService } from "../transactions/ledger.service";
 
 @Injectable()
 export class CyclesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userEncryption: UserEncryptionService,
+    @Inject(forwardRef(() => LedgerService))
+    private readonly ledger: LedgerService,
   ) {}
 
   getPayday(user: { primaryPayday: number | null; preferredCycleStart: number | null }) {
@@ -79,22 +83,17 @@ export class CyclesService {
         )
       : 0;
 
-    const events = await this.prisma.transactionEvent.findMany({
-      where: { cycleId: cycle.id },
-      orderBy: { createdAt: "asc" },
-    });
+    const transactions = await this.ledger.getEffectiveTransactions(
+      userId,
+      cycle.id,
+    );
 
     let income = 0;
     let expenses = 0;
 
-    for (const event of events) {
-      if (event.eventType === "DELETE") continue;
-      const payload = await this.userEncryption.decryptJsonForUser<{
-        amount: number;
-        type: string;
-      }>(userId, event.encryptedPayload);
-      if (payload.type === "INCOME") income += payload.amount;
-      else expenses += payload.amount;
+    for (const tx of transactions) {
+      if (tx.type === "INCOME") income += tx.amount;
+      else expenses += tx.amount;
     }
 
     const endingCash = startingBalance + income - expenses;
@@ -102,6 +101,8 @@ export class CyclesService {
       userId,
       endingCash,
     );
+
+    await this.persistCycleGoalProgress(userId, cycle.id);
 
     await this.prisma.financialCycle.update({
       where: { id: cycle.id },
@@ -177,5 +178,61 @@ export class CyclesService {
       orderBy: { startDate: "desc" },
       take: 12,
     });
+  }
+
+  private async persistCycleGoalProgress(userId: string, cycleId: string) {
+    const goals = await this.prisma.goal.findMany({
+      where: { userId, isActive: true },
+    });
+
+    if (goals.length === 0) return;
+
+    const transactions = await this.ledger.getEffectiveTransactions(
+      userId,
+      cycleId,
+    );
+
+    const engineGoals = await Promise.all(
+      goals.map(async (goal) => ({
+        id: goal.id,
+        name: goal.name,
+        priority: goal.priority,
+        targetAmount: await this.userEncryption.decryptNumberForUser(
+          userId,
+          goal.encryptedTargetAmount,
+        ),
+        targetDate: goal.targetDate,
+        isEmergencyFund: goal.isEmergencyFund,
+        storedCurrentAmount: goal.encryptedCurrentAmount
+          ? await this.userEncryption.decryptNumberForUser(
+              userId,
+              goal.encryptedCurrentAmount,
+            )
+          : 0,
+      })),
+    );
+
+    const persisted = computePersistedGoalAmounts(
+      engineGoals,
+      transactions.map((tx) => ({
+        amount: tx.amount,
+        type: tx.type,
+        category: tx.category,
+        createdAt: tx.createdAt,
+      })),
+    );
+
+    for (const goal of goals) {
+      const amount = persisted[goal.id];
+      if (amount == null) continue;
+
+      await this.prisma.goal.update({
+        where: { id: goal.id },
+        data: {
+          encryptedCurrentAmount:
+            await this.userEncryption.encryptNumberForUser(userId, amount),
+        },
+      });
+    }
   }
 }

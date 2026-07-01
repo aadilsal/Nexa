@@ -59,6 +59,11 @@ export const GoalInputSchema = z.object({
   isEmergencyFund: z.boolean().optional(),
 });
 
+export const OnboardingPreviewSchema = z.object({
+  variableEstimate: z.number().int().nonnegative(),
+  fixedExpenses: z.array(FixedExpenseInputSchema).min(1),
+});
+
 export const OnboardingSchema = z.object({
   primaryPayday: z.number().int().min(1).max(31).optional(),
   preferredCycleStart: z.number().int().min(1).max(31).optional(),
@@ -86,8 +91,40 @@ export const UpdateIncomeExpectationSchema = z.object({
   expectedAmount: z.number().int().nonnegative(),
 });
 
+export const PurchaseSimulationSchema = z.object({
+  itemName: z.string().min(1).max(200),
+  amount: z.number().int().positive(),
+  purchaseDate: z.string().datetime().optional(),
+});
+
+export const ChatMessageSchema = z.object({
+  message: z.string().min(1).max(2000),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string(),
+      }),
+    )
+    .max(20)
+    .optional(),
+});
+
+export const UpdateProfileSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+});
+
+export const UpdateUserSettingsSchema = z.object({
+  timezone: z.string().min(1).max(64).optional(),
+  weeklyReviewEmail: z.boolean().optional(),
+  passkeyPromptDismissed: z.boolean().optional(),
+});
+
 export type ParseTransactionInput = z.infer<typeof ParseTransactionSchema>;
 export type ParsedTransaction = z.infer<typeof ParsedTransactionSchema>;
 export type CreateTransactionInput = z.infer<typeof CreateTransactionSchema>;
 export type OnboardingInput = z.infer<typeof OnboardingSchema>;
+export type OnboardingPreviewInput = z.infer<typeof OnboardingPreviewSchema>;
 export type GoalInput = z.infer<typeof GoalInputSchema>;
+export type PurchaseSimulationInput = z.infer<typeof PurchaseSimulationSchema>;
+export type ChatMessageInput = z.infer<typeof ChatMessageSchema>;

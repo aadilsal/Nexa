@@ -1,4 +1,5 @@
 import { ENGINE_VERSION } from "@nexa/shared";
+import { calculateCashFlowForecast } from "./cash-flow-forecast.js";
 import { calculateCashPosition } from "./expenses.js";
 import { getDaysRemaining } from "./cycle.js";
 import {
@@ -7,12 +8,14 @@ import {
   calculateGoalRequirements,
   findEmergencyFund,
 } from "./goals.js";
+import { detectGoalRisks } from "./goal-risk.js";
 import { calculateHealthScore } from "./health-score.js";
 import {
   calculateHistoricalVariableAverage,
   calculateSafeToSpend,
   sumCharity,
 } from "./safe-to-spend.js";
+import { detectSpendingTrends } from "./spending-trend.js";
 import type { EngineInput, EngineOutput } from "./types.js";
 import { calculateVariance } from "./variance.js";
 import { calculatePredictedMonthlyExpenses } from "./expenses.js";
@@ -89,12 +92,17 @@ export function calculateEngineOutput(input: EngineInput): EngineOutput {
     transactions: input.transactions,
     expectedIncome: input.expectedIncome,
     completedCyclesCount: input.completedCyclesCount,
+    predictedMonthlyExpenses: predictedMonthly,
+    daysElapsed,
+    totalCycleDays,
   });
 
   const variance = calculateVariance(
     input.fixedExpenses,
     input.transactions,
     input.expectedIncome,
+    predictedMonthly,
+    recurringTotal,
   );
 
   const projectedSavings = cash.totalIncome - cash.totalExpenses;
@@ -106,6 +114,49 @@ export function calculateEngineOutput(input: EngineInput): EngineOutput {
     ...input.transactions,
     ...input.historicalCycles.flatMap((c) => c.transactions),
   ].filter((t) => t.createdAt >= yearStart);
+
+  const computedGoals = allocatedGoals.map((g) => ({
+    id: g.goal.id,
+    name: g.goal.name,
+    priority: g.goal.priority,
+    targetAmount: g.goal.targetAmount,
+    currentAmount: g.currentAmount,
+    progress: g.progress,
+    targetDate: g.goal.targetDate.toISOString(),
+    isEmergencyFund: g.goal.isEmergencyFund,
+    requiredMonthlySavings: g.requiredMonthlySavings,
+    eta: g.eta.toISOString(),
+    onTrack: g.onTrack,
+    delayDays: g.delayDays,
+  }));
+
+  const spendingTrends = detectSpendingTrends(
+    input.transactions,
+    input.historicalCycles,
+  );
+
+  const cashFlowForecast = calculateCashFlowForecast({
+    currentCashAvailable: cash.currentCashAvailable,
+    totalIncomeLogged: cash.totalIncome,
+    expectedIncome: input.expectedIncome,
+    recurringTotal,
+    variableSpending: variable,
+    requiredMonthlySavings,
+    daysRemaining,
+    totalCycleDays,
+  });
+
+  const goalRisks = detectGoalRisks({
+    goals: computedGoals,
+    actualSavingsRate: actualRate,
+    targetSavingsRate: targetRate,
+    predictedMonthlyExpenses: predictedMonthly,
+    totalExpenses: cash.totalExpenses,
+    totalIncome: cash.totalIncome,
+    expectedIncome: input.expectedIncome,
+    daysElapsed,
+    totalCycleDays,
+  });
 
   return {
     version: ENGINE_VERSION,
@@ -126,20 +177,7 @@ export function calculateEngineOutput(input: EngineInput): EngineOutput {
       targetRate: Math.round(targetRate * 1000) / 1000,
       projectedSavings,
     },
-    goals: allocatedGoals.map((g) => ({
-      id: g.goal.id,
-      name: g.goal.name,
-      priority: g.goal.priority,
-      targetAmount: g.goal.targetAmount,
-      currentAmount: g.currentAmount,
-      progress: g.progress,
-      targetDate: g.goal.targetDate.toISOString(),
-      isEmergencyFund: g.goal.isEmergencyFund,
-      requiredMonthlySavings: g.requiredMonthlySavings,
-      eta: g.eta.toISOString(),
-      onTrack: g.onTrack,
-      delayDays: g.delayDays,
-    })),
+    goals: computedGoals,
     expenses: {
       predictedMonthly,
       recurring: recurringTotal,
@@ -150,6 +188,9 @@ export function calculateEngineOutput(input: EngineInput): EngineOutput {
           : "ESTIMATED",
     },
     variance,
+    spendingTrends,
+    cashFlowForecast,
+    goalRisks,
     charity: {
       thisCycle: sumCharity(input.transactions),
       thisYear: sumCharity(yearTransactions, today.getFullYear()),
@@ -164,7 +205,23 @@ export function diffEngineOutput(
 ): {
   safeToSpend: { before: number; after: number };
   healthScore: { before: number; after: number };
+  goalImpact: Array<{
+    goalName: string;
+    etaBefore: string;
+    etaAfter: string;
+    stillOnTrack: boolean;
+  }>;
 } {
+  const goalImpact = before.goals.map((bg) => {
+    const ag = after.goals.find((g) => g.id === bg.id);
+    return {
+      goalName: bg.name,
+      etaBefore: bg.eta,
+      etaAfter: ag?.eta ?? bg.eta,
+      stillOnTrack: ag?.onTrack ?? bg.onTrack,
+    };
+  });
+
   return {
     safeToSpend: {
       before: before.safeToSpend.today,
@@ -174,5 +231,6 @@ export function diffEngineOutput(
       before: before.healthScore.overall,
       after: after.healthScore.overall,
     },
+    goalImpact,
   };
 }

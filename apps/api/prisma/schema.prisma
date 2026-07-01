@@ -92,6 +92,7 @@ model User {
   auditLogs           AuditLog[]
   accountDeletion     AccountDeletion?
   settings            UserSettings?
+  passkeys            Passkey[]
 
   @@map("users")
 }
@@ -142,6 +143,25 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@map("verifications")
+}
+
+model Passkey {
+  id           String   @id
+  name         String?
+  publicKey    String
+  userId       String
+  credentialID String
+  counter      Int
+  deviceType   String
+  backedUp     Boolean
+  transports   String?
+  createdAt    DateTime?
+  aaguid       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("passkey")
 }
 
 model EncryptionKey {
@@ -296,12 +316,13 @@ model AccountDeletion {
 }
 
 model UserSettings {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  weeklyReviewEmail Boolean  @default(true)
-  timezone          String   @default("Asia/Karachi")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  weeklyReviewEmail     Boolean  @default(true)
+  timezone              String   @default("Asia/Karachi")
+  passkeyPromptDismissed Boolean @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
