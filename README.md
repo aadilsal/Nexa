@@ -149,7 +149,7 @@ nexa/
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22+ (CI uses Node 24)
 - pnpm 9+
 - Docker (Postgres + Redis)
 
