@@ -120,7 +120,87 @@ export const UpdateUserSettingsSchema = z.object({
   passkeyPromptDismissed: z.boolean().optional(),
 });
 
-export type ParseTransactionInput = z.infer<typeof ParseTransactionSchema>;
+export const SupportTicketCategorySchema = z.enum([
+  "BUG",
+  "FEEDBACK",
+  "FEATURE_REQUEST",
+  "OTHER",
+]);
+
+export const CreateSupportTicketSchema = z.object({
+  category: SupportTicketCategorySchema,
+  subject: z.string().min(1).max(200),
+  description: z.string().min(1).max(5000),
+  includeSnapshot: z.boolean().optional(),
+  snapshotConsent: z.boolean().optional(),
+  route: z.string().max(500).optional(),
+  browser: z.string().max(100).optional(),
+  os: z.string().max(100).optional(),
+  deviceType: z.string().max(50).optional(),
+  appVersion: z.string().max(50).optional(),
+  consoleErrors: z.array(z.string().max(500)).max(20).optional(),
+});
+
+export const PublicContactSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email().max(255),
+  message: z.string().min(1).max(5000),
+});
+
+export const AnalyticsEventSchema = z.object({
+  event: z.string().min(1).max(100),
+  properties: z
+    .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+    .optional(),
+  route: z.string().max(500).optional(),
+  referrer: z.string().max(500).optional(),
+  appVersion: z.string().max(50).optional(),
+  platform: z.string().max(50).optional(),
+  browser: z.string().max(100).optional(),
+  os: z.string().max(100).optional(),
+  deviceType: z.string().max(50).optional(),
+  sessionId: z.string().max(100).optional(),
+  timestamp: z.string().datetime().optional(),
+});
+
+export const AnalyticsBatchSchema = z.object({
+  events: z.array(AnalyticsEventSchema).min(1).max(50),
+});
+
+export const ErrorReportSchema = z.object({
+  source: z.enum(["frontend", "backend"]),
+  errorType: z.string().max(100),
+  message: z.string().max(2000),
+  stackTrace: z.string().max(10000).optional(),
+  route: z.string().max(500).optional(),
+  browser: z.string().max(100).optional(),
+  os: z.string().max(100).optional(),
+  appVersion: z.string().max(50).optional(),
+});
+
+export const UpdateSupportTicketStatusSchema = z.object({
+  status: z.enum(["OPEN", "IN_PROGRESS", "WAITING_USER", "RESOLVED", "CLOSED"]),
+});
+
+export const ViewSnapshotSchema = z.object({
+  reason: z.string().min(10).max(500),
+});
+
+export const AdminMfaSetupSchema = z.object({
+  code: z.string().length(6).regex(/^\d+$/),
+});
+
+export const AdminMfaVerifySchema = z.object({
+  code: z.string().length(6).regex(/^\d+$/),
+});
+
+export const AnalyticsBatchSignedSchema = AnalyticsBatchSchema.extend({
+  signature: z.string().optional(),
+});
+
+export type CreateSupportTicketInput = z.infer<typeof CreateSupportTicketSchema>;
+export type PublicContactInput = z.infer<typeof PublicContactSchema>;
+export type AnalyticsBatchInput = z.infer<typeof AnalyticsBatchSchema>;
 export type ParsedTransaction = z.infer<typeof ParsedTransactionSchema>;
 export type CreateTransactionInput = z.infer<typeof CreateTransactionSchema>;
 export type OnboardingInput = z.infer<typeof OnboardingSchema>;

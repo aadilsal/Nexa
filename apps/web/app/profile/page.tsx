@@ -160,6 +160,18 @@ export default function ProfilePage() {
         </Card>
 
         <Card>
+          <CardTitle className="mb-2">Help & support</CardTitle>
+          <CardDescription className="mb-4">
+            Report bugs, share feedback, or request features.
+          </CardDescription>
+          <Link href="/support">
+            <Button variant="outline" size="sm">
+              Support &amp; feedback
+            </Button>
+          </Link>
+        </Card>
+
+        <Card>
           <CardTitle className="mb-2">Data & privacy</CardTitle>
           <CardDescription className="mb-4">
             Export your data or manage account deletion.

@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CATEGORIES } from "@nexa/shared";
 import { api } from "@/lib/api";
-import { captureEvent } from "@/lib/posthog";
+import { track } from "@nexa/analytics/react";
 
 interface Props {
   transactionId: string;
@@ -20,7 +20,7 @@ export function RecategorizeSelect({ transactionId, category }: Props) {
         body: JSON.stringify({ category: newCategory }),
       }),
     onSuccess: () => {
-      captureEvent("transaction_recategorized");
+      track("transaction_recategorized");
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },

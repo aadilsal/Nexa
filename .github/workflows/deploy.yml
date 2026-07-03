@@ -22,7 +22,9 @@ jobs:
       - run: pnpm --filter @nexa/finance-engine build
       - run: pnpm --filter @nexa/finance-engine test
       - run: pnpm --filter @nexa/emails build
+      - run: pnpm --filter @nexa/analytics build
       - run: pnpm --filter @nexa/api exec prisma generate
+      - run: pnpm --filter @nexa/api exec prisma generate --schema=prisma/analytics/schema.prisma
       - run: pnpm --filter @nexa/api build
 
       # Render/Vercel deploy hooks — set these secrets in GitHub
@@ -46,11 +48,11 @@ jobs:
 
       - run: pnpm install
       - run: pnpm --filter @nexa/shared build
+      - run: pnpm --filter @nexa/analytics build
       - run: pnpm --filter @nexa/emails build
       - run: pnpm --filter @nexa/web build
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
-          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
 
       # Vercel auto-deploys on push when repo is connected; this job validates build

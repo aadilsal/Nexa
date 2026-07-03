@@ -8,7 +8,12 @@ import { PrismaService } from "../../common/prisma/prisma.module";
 
 export interface AuthenticatedRequest extends Request {
   userId: string;
-  user: { id: string; email: string; name: string | null };
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+    role: string;
+  };
 }
 
 @Injectable()
@@ -39,6 +44,7 @@ export class SessionGuard implements CanActivate {
       id: session.user.id,
       email: session.user.email,
       name: session.user.name,
+      role: session.user.role,
     };
 
     return true;

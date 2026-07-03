@@ -35,6 +35,7 @@ export class UsersService {
         onboardingComplete: user.onboardingComplete,
         primaryPayday: user.primaryPayday,
         preferredCycleStart: user.preferredCycleStart,
+        role: user.role,
         createdAt: user.createdAt,
       },
       settings: user.settings ?? {

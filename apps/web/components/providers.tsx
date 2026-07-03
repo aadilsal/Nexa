@@ -4,7 +4,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 import { Toaster } from "sonner";
-import { PostHogProvider } from "@/lib/posthog";
+import { AnalyticsProvider } from "@nexa/analytics/react";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -21,12 +24,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <PostHogProvider>
+      <AnalyticsProvider apiUrl={API_URL}>
         <QueryClientProvider client={queryClient}>
-          {children}
+          <TooltipProvider delayDuration={200}>
+            {children}
+          </TooltipProvider>
           <Toaster richColors position="top-center" />
         </QueryClientProvider>
-      </PostHogProvider>
+      </AnalyticsProvider>
     </ThemeProvider>
   );
 }

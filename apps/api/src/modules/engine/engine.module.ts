@@ -1,10 +1,13 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { CyclesModule } from "../cycles/cycles.module";
 import { TransactionsModule } from "../transactions/transactions.module";
 import { EngineDataService } from "./engine-data.service";
 
 @Module({
-  imports: [CyclesModule, TransactionsModule],
+  imports: [
+    forwardRef(() => CyclesModule),
+    forwardRef(() => TransactionsModule),
+  ],
   providers: [EngineDataService],
   exports: [EngineDataService],
 })

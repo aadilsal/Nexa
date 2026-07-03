@@ -7,7 +7,7 @@ import { AppNav } from "@/components/app-nav";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { api, apiText } from "@/lib/api";
-import { captureEvent } from "@/lib/posthog";
+import { track } from "@nexa/analytics/react";
 
 export default function DataPage() {
   const queryClient = useQueryClient();
@@ -20,7 +20,7 @@ export default function DataPage() {
   const requestDeletion = useMutation({
     mutationFn: () => api("/account", { method: "DELETE" }),
     onSuccess: () => {
-      captureEvent("account_deleted");
+      track("account_deleted");
       toast.success("Account deletion scheduled (30-day grace period)");
       queryClient.invalidateQueries({ queryKey: ["deletion-status"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
@@ -37,7 +37,7 @@ export default function DataPage() {
 
   async function downloadJson() {
     const data = await api<unknown>("/export/json");
-    captureEvent("data_exported", { format: "json" });
+    track("data_exported", { format: "json" });
     const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: "application/json",
     });
@@ -52,7 +52,7 @@ export default function DataPage() {
 
   async function downloadCsv() {
     const csv = await apiText("/export/csv");
-    captureEvent("data_exported", { format: "csv" });
+    track("data_exported", { format: "csv" });
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

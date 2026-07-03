@@ -10,6 +10,7 @@ const links = [
   { href: "/weekly-review", label: "Weekly Review" },
   { href: "/chat", label: "Chat" },
   { href: "/profile", label: "Profile" },
+  { href: "/support", label: "Help" },
 ];
 
 export function AppNav() {

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { captureEvent } from "@/lib/posthog";
+import { track } from "@nexa/analytics/react";
 import { formatPKR } from "@/lib/utils";
 
 interface FixedExpenseRow {
@@ -95,7 +95,7 @@ export default function OnboardingPage() {
           emergencyFundTarget: emergencyTarget,
         }),
       });
-      captureEvent("onboarding_completed");
+      track("onboarding_completed");
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Onboarding failed");

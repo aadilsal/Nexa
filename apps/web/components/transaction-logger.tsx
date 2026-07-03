@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { captureEvent } from "@/lib/posthog";
+import { track } from "@nexa/analytics/react";
 import { formatPKR } from "@/lib/utils";
 
 interface ParsedPreview {
@@ -49,9 +49,9 @@ export function TransactionLogger() {
     onSuccess: (data) => {
       setRawInput("");
       setPreview(null);
-      captureEvent(
-        data.transaction.type === "INCOME" ? "income_logged" : "expense_logged",
-        { category: data.transaction.category },
+      track(
+        data.transaction.type === "INCOME" ? "transaction_logged" : "transaction_logged",
+        { type: data.transaction.type === "INCOME" ? "income" : "expense" },
       );
       toast.success(
         data.insight ??

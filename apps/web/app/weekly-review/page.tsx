@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { AppNav } from "@/components/app-nav";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { captureEvent } from "@/lib/posthog";
+import { track } from "@nexa/analytics/react";
 import { formatPKR } from "@/lib/utils";
 
 interface WeeklyReviewData {
@@ -39,7 +39,7 @@ export default function WeeklyReviewPage() {
   });
 
   useEffect(() => {
-    if (data) captureEvent("weekly_review_opened");
+    if (data) track("weekly_review_opened");
   }, [data]);
 
   return (

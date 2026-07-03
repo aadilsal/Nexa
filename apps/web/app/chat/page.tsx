@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { captureEvent } from "@/lib/posthog";
+import { track } from "@nexa/analytics/react";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -30,7 +30,7 @@ export default function ChatPage() {
         }),
       }),
     onSuccess: (data, message) => {
-      captureEvent("ai_chat_message_sent");
+      track("ai_chat_message_sent");
       setMessages((prev) => [
         ...prev,
         { role: "user", content: message },

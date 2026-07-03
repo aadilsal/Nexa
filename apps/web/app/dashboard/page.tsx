@@ -12,8 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { signOut, useSession } from "@/lib/auth-client";
-import { captureEvent } from "@/lib/posthog";
+import { track } from "@nexa/analytics/react";
 import { formatPKR } from "@/lib/utils";
+import { CardContent, CardHeader } from "@/components/ui/card";
+import { BrainCircuit, ArrowRight } from "lucide-react";
+import { CanIBuyThis } from "@/components/can-i-buy-this";
 
 interface DashboardData {
   version: string;
@@ -114,8 +117,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (dashboard) {
-      captureEvent("safe_to_spend_viewed");
-      if (dashboard.insight) captureEvent("ai_insight_viewed");
+      track("dashboard_viewed");
+      if (dashboard.insight) track("ai_insight_viewed");
     }
   }, [dashboard]);
 
@@ -134,224 +137,206 @@ export default function DashboardPage() {
   const emergencyGoal = dashboard?.goals.find((g) => g.isEmergencyFund);
 
   return (
-    <main className="mx-auto min-h-screen max-w-4xl px-4 py-8">
+    <main className="mx-auto min-h-screen max-w-5xl px-4 py-8 space-y-8">
       <PasskeyPrompt open={showPasskeyPrompt} onDismiss={dismissPasskeyPrompt} />
-      <header className="mb-4 flex items-center justify-between">
+      
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <p className="text-sm text-muted-foreground">{getGreeting()} 👋</p>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <h1 className="text-3xl font-display font-bold tracking-tight">Overview</h1>
         </div>
-        <Button
-          variant="ghost"
-          onClick={async () => {
-            await signOut();
-            router.push("/");
-          }}
-        >
-          Sign out
-        </Button>
+        <div className="flex items-center gap-3">
+          <CanIBuyThis />
+          <Button variant="ghost" onClick={async () => { await signOut(); router.push("/"); }}>
+            Sign out
+          </Button>
+        </div>
       </header>
 
       <AppNav />
 
       {dashboard?.cycle.status === "PENDING_CONFIRMATION" && (
         <Card className="mb-6 border-primary/30 bg-primary/5">
-          <CardTitle className="mb-1">New financial cycle started</CardTitle>
-          <CardDescription className="mb-4">
-            Starting balance: {formatPKR(dashboard.cash.startingBalance)}. Is
-            this correct?
-          </CardDescription>
-          <Button
-            size="sm"
-            onClick={() =>
-              api("/cycles/confirm-rollover", { method: "POST", body: "{}" }).then(
-                () => queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-              )
-            }
-          >
-            Confirm
-          </Button>
+          <CardHeader className="pb-2">
+            <CardTitle>New financial cycle started</CardTitle>
+            <CardDescription>
+              Starting balance: {formatPKR(dashboard.cash.startingBalance)}. Is this correct?
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button size="sm" onClick={() => api("/cycles/confirm-rollover", { method: "POST", body: "{}" }).then(() => queryClient.invalidateQueries({ queryKey: ["dashboard"] }))}>
+              Confirm
+            </Button>
+          </CardContent>
         </Card>
       )}
 
+      {/* Grid Row 1: Health Check */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="md:col-span-2 bg-gradient-to-br from-primary/10 via-background to-background border-primary/20 shadow-sm relative overflow-hidden">
+          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/5 blur-3xl" />
+          <CardHeader className="pb-2">
+            <CardDescription className="text-primary font-medium tracking-wide uppercase">Safe To Spend Today</CardDescription>
+            <CardTitle className="text-5xl font-mono tracking-tight text-primary">
+              {formatPKR(dashboard?.safeToSpend.today ?? 0)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground text-sm">
+              Baseline {formatPKR(dashboard?.safeToSpend.baseline ?? 0)}
+              {dashboard?.safeToSpend.trendMultiplier !== 1 && ` · Trend ×${dashboard?.safeToSpend.trendMultiplier.toFixed(2)}`}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="font-medium tracking-wide uppercase">Financial Health</CardDescription>
+            <CardTitle className="text-4xl font-display tracking-tight mt-1">
+              {dashboard?.healthScore.overall ?? 0}
+              <span className="text-lg text-muted-foreground font-sans"> / 100</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              {dashboard?.cycle.daysRemaining ?? 0} days left in cycle
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Row 2: AI Coach */}
       {dashboard?.insight && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-        >
-          <Card className="mb-6 border-primary/20">
-            <CardDescription>Today&apos;s Insight</CardDescription>
-            <p className="mt-2 text-sm leading-relaxed">{dashboard.insight}</p>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+          <Card className="border-border bg-card/50 backdrop-blur shadow-sm">
+            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-6">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <BrainCircuit className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium">Nexa Insight</h3>
+                <p className="text-muted-foreground text-sm mt-1">{dashboard.insight}</p>
+              </div>
+            </CardContent>
           </Card>
         </motion.div>
       )}
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
-        <Card className="border-primary/20 bg-primary/5">
-          <CardDescription>Safe To Spend Today</CardDescription>
-          <p className="mt-1 font-mono text-3xl font-bold text-primary">
-            {formatPKR(dashboard?.safeToSpend.today ?? 0)}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Baseline {formatPKR(dashboard?.safeToSpend.baseline ?? 0)}
-            {dashboard?.safeToSpend.trendMultiplier !== 1 &&
-              ` · Trend ×${dashboard?.safeToSpend.trendMultiplier.toFixed(2)}`}
-          </p>
+      {/* Cash Flow Summary */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Income This Cycle</CardDescription>
+            <CardTitle className="font-mono text-xl">{formatPKR(dashboard?.cash.totalIncome ?? 0)}</CardTitle>
+          </CardHeader>
         </Card>
         <Card>
-          <CardDescription>Financial Health</CardDescription>
-          <p className="mt-1 text-3xl font-bold">
-            {dashboard?.healthScore.overall ?? 0}
-            <span className="text-lg text-muted-foreground"> / 100</span>
-          </p>
+          <CardHeader className="pb-2">
+            <CardDescription>Spent</CardDescription>
+            <CardTitle className="font-mono text-xl">{formatPKR(dashboard?.cash.totalExpenses ?? 0)}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Projected Savings</CardDescription>
+            <CardTitle className="font-mono text-xl text-primary">{formatPKR(dashboard?.savings.projectedSavings ?? 0)}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">
+              {Math.round((dashboard?.savings.actualRate ?? 0) * 100)}% actual · {Math.round((dashboard?.savings.targetRate ?? 0) * 100)}% target
+            </p>
+          </CardContent>
         </Card>
       </div>
-
-      <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardDescription>Income This Cycle</CardDescription>
-          <p className="mt-1 font-mono text-xl font-bold">
-            {formatPKR(dashboard?.cash.totalIncome ?? 0)}
-          </p>
-        </Card>
-        <Card>
-          <CardDescription>Spent</CardDescription>
-          <p className="mt-1 font-mono text-xl font-bold">
-            {formatPKR(dashboard?.cash.totalExpenses ?? 0)}
-          </p>
-        </Card>
-        <Card>
-          <CardDescription>Projected Savings</CardDescription>
-          <p className="mt-1 font-mono text-xl font-bold text-primary">
-            {formatPKR(dashboard?.savings.projectedSavings ?? 0)}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {Math.round((dashboard?.savings.actualRate ?? 0) * 100)}% actual ·{" "}
-            {Math.round((dashboard?.savings.targetRate ?? 0) * 100)}% target
-          </p>
-        </Card>
-      </div>
-
-      {emergencyGoal && (
-        <Card className="mb-8">
-          <div className="flex items-center justify-between">
-            <CardTitle>Emergency Fund</CardTitle>
-            <span className="text-sm font-medium">{emergencyGoal.progress}%</span>
-          </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-            <motion.div
-              className="h-full rounded-full bg-primary"
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.min(emergencyGoal.progress, 100)}%` }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-            />
-          </div>
-          <CardDescription className="mt-2">
-            Target {formatPKR(emergencyGoal.targetAmount)} · ETA{" "}
-            {new Date(emergencyGoal.eta).toLocaleDateString("en-PK", {
-              month: "long",
-              year: "numeric",
-            })}
-          </CardDescription>
-        </Card>
-      )}
 
       <TransactionLogger />
 
+      {/* Row 3: Recent Activity & Goals */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
-          <CardTitle className="mb-4">Goals</CardTitle>
-          {!dashboard?.goals.length ? (
-            <p className="text-sm text-muted-foreground">No goals yet</p>
-          ) : (
-            <div className="space-y-4">
-              {dashboard.goals.map((goal) => (
-                <div key={goal.id}>
-                  <div className="mb-1 flex justify-between text-sm">
+          <CardHeader>
+            <CardTitle>Active Goals</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {!dashboard?.goals.length ? (
+              <p className="text-sm text-muted-foreground">No goals yet.</p>
+            ) : (
+              dashboard.goals.map((goal) => (
+                <div key={goal.id} className="space-y-2">
+                  <div className="flex justify-between items-center text-sm">
                     <span className="font-medium">{goal.name}</span>
-                    <span>{goal.progress}%</span>
+                    <span className="text-muted-foreground font-mono">{goal.progress}%</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all duration-300"
-                      style={{ width: `${Math.min(goal.progress, 100)}%` }}
+                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-primary rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(goal.progress, 100)}%` }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatPKR(goal.targetAmount)} ·{" "}
-                    {goal.onTrack ? "On track" : "Delayed"}
+                  <p className="text-xs text-muted-foreground">
+                    Target {formatPKR(goal.targetAmount)} · {goal.onTrack ? "On track" : "Delayed"}
                   </p>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </CardContent>
         </Card>
 
         <Card>
-          <CardTitle className="mb-4">Recent Transactions</CardTitle>
-          {!transactions?.length ? (
-            <p className="text-sm text-muted-foreground">
-              No transactions yet. Log your first expense above.
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              {transactions.slice(0, 10).map((tx) => (
-                <li
-                  key={tx.id}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <div>
-                    <p className="font-medium">{tx.description}</p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <RecategorizeSelect
-                        transactionId={tx.id}
-                        category={tx.category}
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        {tx.type}
-                      </span>
+          <CardHeader>
+            <CardTitle>Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!transactions?.length ? (
+              <p className="text-sm text-muted-foreground">No transactions yet. Log your first expense above.</p>
+            ) : (
+              <ul className="space-y-4">
+                {transactions.slice(0, 5).map((tx) => (
+                  <li key={tx.id} className="flex items-center justify-between text-sm">
+                    <div>
+                      <p className="font-medium">{tx.description}</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <RecategorizeSelect transactionId={tx.id} category={tx.category} />
+                        <span className="text-xs text-muted-foreground">{tx.type}</span>
+                      </div>
                     </div>
-                  </div>
-                  <span className="font-mono">
-                    {tx.type === "INCOME" ? "+" : "-"}
-                    {formatPKR(tx.amount)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+                    <span className="font-mono font-medium">
+                      {tx.type === "INCOME" ? "+" : "-"}{formatPKR(tx.amount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
         </Card>
       </div>
 
       {dashboard?.variance.fixedExpenses.some((v) => v.variance !== 0) && (
-        <Card className="mt-6">
-          <CardTitle className="mb-4">Spending vs Expected</CardTitle>
-          <ul className="space-y-2 text-sm">
-            {dashboard.variance.fixedExpenses
-              .filter((v) => v.expected > 0)
-              .map((v) => (
-                <li key={v.name} className="flex justify-between">
+        <Card>
+          <CardHeader>
+            <CardTitle>Spending vs Expected</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm">
+              {dashboard.variance.fixedExpenses.filter((v) => v.expected > 0).map((v) => (
+                <li key={v.name} className="flex justify-between p-2 rounded bg-muted/30">
                   <span>{v.name}</span>
-                  <span
-                    className={
-                      v.variance > 0 ? "text-primary" : "text-destructive"
-                    }
-                  >
-                    {v.variance > 0 ? "Under" : "Over"} by{" "}
-                    {formatPKR(Math.abs(v.variance))}
+                  <span className={v.variance > 0 ? "text-primary font-medium" : "text-destructive font-medium"}>
+                    {v.variance > 0 ? "Under" : "Over"} by {formatPKR(Math.abs(v.variance))}
                   </span>
                 </li>
               ))}
-          </ul>
+            </ul>
+          </CardContent>
         </Card>
       )}
 
-      <p className="mt-8 text-center text-xs text-muted-foreground">
-        {dashboard?.cycle.daysRemaining ?? 0} days left in cycle · Engine v
-        {dashboard?.version}
-        {(dashboard?.charity?.thisCycle ?? 0) > 0 &&
-          ` · Charity this cycle: ${formatPKR(dashboard!.charity.thisCycle)}`}
+      <p className="text-center text-xs text-muted-foreground pt-4">
+        Engine v{dashboard?.version}
+        {(dashboard?.charity?.thisCycle ?? 0) > 0 && ` · Charity this cycle: ${formatPKR(dashboard!.charity.thisCycle)}`}
       </p>
     </main>
   );

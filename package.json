@@ -6,12 +6,13 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",
-    "db:generate": "pnpm --filter @nexa/api db:generate",
-    "db:migrate": "pnpm --filter @nexa/api db:migrate",
-    "db:push": "pnpm --filter @nexa/api db:push",
-    "db:studio": "pnpm --filter @nexa/api db:studio"
+    "db:generate": "dotenv -e .env -o -- pnpm --filter @nexa/api db:generate",
+    "db:migrate": "dotenv -e .env -o -- pnpm --filter @nexa/api db:migrate",
+    "db:push": "dotenv -e .env -o -- pnpm --filter @nexa/api db:push",
+    "db:studio": "dotenv -e .env -o -- pnpm --filter @nexa/api db:studio"
   },
   "devDependencies": {
+    "dotenv-cli": "^8.0.0",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3"
   },

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { authClient, signUp } from "@/lib/auth-client";
-import { captureEvent } from "@/lib/posthog";
+import { track } from "@nexa/analytics/react";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function SignupPage() {
         setError(result.error.message ?? "Signup failed");
         return;
       }
-      captureEvent("signup_completed");
+      track("signup_completed");
       router.push("/verify-email");
     } catch {
       setError("Signup failed. Please try again.");

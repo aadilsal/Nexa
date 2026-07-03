@@ -74,7 +74,7 @@ The full MVP is implemented across four phases:
 | **Weekly Review** | In-app review + automated email (React Email design system) |
 | **Profile & Security** | Passkeys, magic link auth, email verification, export (JSON/CSV), account deletion |
 | **Emails** | 36 transactional templates via `@nexa/emails` (React Email + Resend) |
-| **Analytics** | PostHog event tracking across core user actions |
+| **Analytics** | First-party analytics via `@nexa/analytics` and admin dashboard |
 | **Deploy** | Docker API image, GitHub Actions CI, Vercel + Render + Neon target stack |
 
 ---
@@ -122,7 +122,7 @@ Every feature, screen, and email follows this mindset — calm, trustworthy, min
 | AI | Groq (Llama 3.3) — explanation layer only |
 | Cache | Redis |
 | Email | Resend + `@nexa/emails` (React Email) |
-| Analytics | PostHog |
+| Analytics | First-party `@nexa/analytics` + admin platform |
 | Monorepo | Turborepo + pnpm |
 
 ---
@@ -137,6 +137,7 @@ nexa/
 ├── packages/
 │   ├── finance-engine/         # Financial Intelligence Engine v1.0
 │   ├── shared/                 # Zod schemas, constants, types
+│   ├── analytics/              # First-party analytics SDK
 │   └── emails/                 # Transactional email design system
 ├── docs/                       # PRD, engine spec, architecture
 ├── docker/                     # Compose + API Dockerfile
@@ -161,7 +162,7 @@ cp .env.example .env
 # Set BETTER_AUTH_SECRET and KEK in .env
 
 docker compose -f docker/docker-compose.yml up -d
-pnpm db:push
+pnpm db:push   # loads root .env; Postgres is on localhost:5434 (avoids local PG conflicts)
 pnpm dev
 ```
 
@@ -187,6 +188,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 | [Product Requirements Document](./docs/PRD.md) | Product vision, features, user stories |
 | [Finance Engine Specification](./docs/finance-engine-spec.md) | Formulas, rules, engine v1.0.0 |
 | [Technical Architecture](./docs/architecture.md) | System design, APIs, schema, security |
+| [Admin Platform](./docs/admin-platform/README.md) | Internal ops, analytics, support, RBAC |
 
 ---
 

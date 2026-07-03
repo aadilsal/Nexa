@@ -1,0 +1,246 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/analytics-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("ANALYTICS_DATABASE_URL")
+}
+
+enum SupportTicketCategory {
+  BUG
+  FEEDBACK
+  FEATURE_REQUEST
+  OTHER
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_USER
+  RESOLVED
+  CLOSED
+}
+
+enum SnapshotStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+enum AdminAuditAction {
+  VIEW_USER_PROFILE
+  VIEW_SUPPORT_TICKET
+  VIEW_SNAPSHOT
+  UPDATE_TICKET_STATUS
+  VIEW_ANALYTICS
+  VIEW_AUDIT_LOGS
+  SYNC_USER_DIRECTORY
+  AGGREGATE_METRICS
+  SYSTEM_HEALTH_CHECK
+  MFA_SETUP
+  MFA_VERIFY
+  VIEW_ERRORS
+}
+
+model AnalyticsEvent {
+  id          String   @id @default(cuid())
+  eventName   String
+  userIdHash  String?
+  sessionId   String?
+  anonymousId String?
+  properties  Json     @default("{}")
+  route       String?
+  referrer    String?
+  appVersion  String?
+  platform    String?
+  browser     String?
+  os          String?
+  deviceType  String?
+  ipHash      String?
+  timestamp   DateTime
+  receivedAt  DateTime @default(now())
+
+  @@index([eventName, timestamp])
+  @@index([userIdHash, timestamp])
+  @@index([sessionId, timestamp])
+  @@index([timestamp])
+  @@map("analytics_events")
+}
+
+model DailyMetric {
+  id           String   @id @default(cuid())
+  date         DateTime @db.Date
+  metric       String
+  value        Float
+  dimensionKey String   @default("")
+  dimensions   Json?
+  createdAt    DateTime @default(now())
+
+  @@unique([date, metric, dimensionKey])
+  @@index([metric, date])
+  @@map("daily_metrics")
+}
+
+model UserDirectoryEntry {
+  id                 String    @id
+  email              String
+  name               String?
+  signupDate         DateTime
+  lastLoginAt        DateTime?
+  authMethods        String[]  @default([])
+  activeSessionCount Int       @default(0)
+  deviceCount        Int       @default(0)
+  appVersion         String?
+  emailVerified      Boolean   @default(false)
+  onboardingComplete Boolean   @default(false)
+  role               String    @default("USER")
+  updatedAt          DateTime  @updatedAt
+
+  activity UserActivitySummary?
+
+  @@index([signupDate])
+  @@index([lastLoginAt])
+  @@index([email])
+  @@map("user_directory_entries")
+}
+
+model UserActivitySummary {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  transactionsLogged  Int      @default(0)
+  goalsCreated        Int      @default(0)
+  aiMessagesSent      Int      @default(0)
+  simulationsRun      Int      @default(0)
+  loginCount          Int      @default(0)
+  sessionCount        Int      @default(0)
+  lastActiveAt        DateTime?
+  onboardingCompleted Boolean  @default(false)
+  updatedAt           DateTime @updatedAt
+
+  user UserDirectoryEntry @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lastActiveAt])
+  @@map("user_activity_summaries")
+}
+
+model SupportTicket {
+  id              String                @id @default(cuid())
+  userId          String?
+  guestEmail      String?
+  guestName       String?
+  category        SupportTicketCategory
+  subject         String
+  description     String
+  status          SupportTicketStatus   @default(OPEN)
+  route           String?
+  browser         String?
+  os              String?
+  deviceType      String?
+  appVersion      String?
+  consoleErrors   Json?
+  hasSnapshot     Boolean               @default(false)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  snapshot    SupportSnapshot?
+  accessLogs  SnapshotAccessLog[]
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([guestEmail])
+  @@map("support_tickets")
+}
+
+model SupportSnapshot {
+  id               String         @id @default(cuid())
+  ticketId         String         @unique
+  encryptedPayload String
+  accessToken      String         @unique
+  status           SnapshotStatus @default(ACTIVE)
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime       @default(now())
+
+  ticket     SupportTicket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  accessLogs SnapshotAccessLog[]
+
+  @@index([accessToken])
+  @@index([expiresAt])
+  @@map("support_snapshots")
+}
+
+model SnapshotAccessLog {
+  id             String   @id @default(cuid())
+  snapshotId     String
+  ticketId       String
+  adminUserId    String
+  adminEmail     String
+  reason         String
+  accessDuration Int?
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  snapshot SupportSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  ticket   SupportTicket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([snapshotId, createdAt])
+  @@index([ticketId, createdAt])
+  @@map("snapshot_access_logs")
+}
+
+model AdminAuditLog {
+  id          String           @id @default(cuid())
+  adminUserId String
+  adminEmail  String
+  action      AdminAuditAction
+  targetId    String?
+  metadata    Json?
+  reason      String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime         @default(now())
+
+  @@index([adminUserId, createdAt])
+  @@index([action, createdAt])
+  @@map("admin_audit_logs")
+}
+
+model ErrorReport {
+  id          String   @id @default(cuid())
+  source      String
+  errorType   String
+  message     String
+  stackTrace  String?
+  route       String?
+  userIdHash  String?
+  sessionId   String?
+  browser     String?
+  os          String?
+  appVersion  String?
+  metadata    Json?
+  fingerprint String   @unique
+  count       Int      @default(1)
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  @@index([fingerprint])
+  @@index([lastSeenAt])
+  @@map("error_reports")
+}
+
+model ApiRequestMetric {
+  id         String   @id @default(cuid())
+  method     String
+  path       String
+  statusCode Int
+  durationMs Int
+  createdAt  DateTime @default(now())
+
+  @@index([path, createdAt])
+  @@index([durationMs, createdAt])
+  @@index([createdAt])
+  @@map("api_request_metrics")
+}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/providers";
+import { Header } from "@/components/header";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,9 +15,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen antialiased">
-        <Providers>{children}</Providers>
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen antialiased flex flex-col">
+        <Providers>
+          <Header />
+          <main className="flex-1 flex flex-col">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );

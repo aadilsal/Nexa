@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { captureEvent } from "@/lib/posthog";
+import { track } from "@nexa/analytics/react";
 import { formatPKR } from "@/lib/utils";
 
 interface SimulationResult {
@@ -41,7 +41,7 @@ export default function CanIBuyPage() {
     onError: (err) =>
       toast.error(err instanceof Error ? err.message : "Simulation failed"),
     onSuccess: (data) => {
-      captureEvent("can_i_buy_simulated", {
+      track("simulation_run", {
         recommendation: data.recommendation,
       });
     },
