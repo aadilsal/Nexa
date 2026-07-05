@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/ui/form-field";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { SiteFooter } from "@/components/site-footer";
+import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
+import { SUPPORT_EMAIL } from "@/lib/marketing-content";
 import { api } from "@/lib/api";
 
 export default function ContactPage() {
@@ -39,79 +40,67 @@ export default function ContactPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col">
-      <div className="mx-auto max-w-2xl flex-1 px-4 py-12">
-        <Link
-          href="/"
-          className="mb-8 inline-block text-sm text-muted-foreground hover:text-foreground"
-        >
-          &larr; Back to home
-        </Link>
-
-        <h1 className="mb-4 text-3xl font-bold">Contact Us</h1>
-        <p className="mb-8 text-muted-foreground">
-          Have a question? We typically respond within 1–2 business days.
-        </p>
-
-        <Card className="mb-8 p-6">
-          <CardTitle className="mb-2">Support email</CardTitle>
-          <CardDescription className="text-base text-foreground">
-            <a
-              href="mailto:support@nexa.app"
-              className="text-primary hover:underline"
-            >
-              support@nexa.app
-            </a>
-          </CardDescription>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Logged in? Use{" "}
-            <Link href="/support" className="text-primary hover:underline">
-              Support &amp; Feedback
-            </Link>{" "}
-            for faster help with account-specific issues.
-          </p>
-        </Card>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <FormField label="Name" htmlFor="name" error={errors.name?.message}>
-            <Input
-              id="name"
-              maxLength={100}
-              error={!!errors.name}
-              {...register("name")}
-            />
-          </FormField>
-
-          <FormField label="Email" htmlFor="email" error={errors.email?.message}>
-            <Input
-              id="email"
-              type="email"
-              maxLength={255}
-              error={!!errors.email}
-              {...register("email")}
-            />
-          </FormField>
-
-          <FormField
-            label="Message"
-            htmlFor="message"
-            error={errors.message?.message}
+    <MarketingPageShell
+      title="Contact Us"
+      description="Have a question? We typically respond within 1–2 business days."
+    >
+      <Card className="mb-8 p-6">
+        <CardTitle className="mb-2">Support email</CardTitle>
+        <CardDescription className="text-base text-foreground">
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="text-primary hover:underline"
           >
-            <Textarea
-              id="message"
-              rows={5}
-              maxLength={5000}
-              error={!!errors.message}
-              {...register("message")}
-            />
-          </FormField>
+            {SUPPORT_EMAIL}
+          </a>
+        </CardDescription>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Logged in? Use{" "}
+          <Link href="/support" className="text-primary hover:underline">
+            Support &amp; Feedback
+          </Link>{" "}
+          for faster help with account-specific issues.
+        </p>
+      </Card>
 
-          <Button type="submit" loading={isSubmitting}>
-            Send Message
-          </Button>
-        </form>
-      </div>
-      <SiteFooter />
-    </main>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <FormField label="Name" htmlFor="name" error={errors.name?.message}>
+          <Input
+            id="name"
+            maxLength={100}
+            error={!!errors.name}
+            {...register("name")}
+          />
+        </FormField>
+
+        <FormField label="Email" htmlFor="email" error={errors.email?.message}>
+          <Input
+            id="email"
+            type="email"
+            maxLength={255}
+            error={!!errors.email}
+            {...register("email")}
+          />
+        </FormField>
+
+        <FormField
+          label="Message"
+          htmlFor="message"
+          error={errors.message?.message}
+        >
+          <Textarea
+            id="message"
+            rows={5}
+            maxLength={5000}
+            error={!!errors.message}
+            {...register("message")}
+          />
+        </FormField>
+
+        <Button type="submit" loading={isSubmitting}>
+          Send Message
+        </Button>
+      </form>
+    </MarketingPageShell>
   );
 }

@@ -5,7 +5,7 @@ import { useAppRouter } from "@/lib/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AuthSignUpSchema, type AuthSignUpInput } from "@nexa/shared";
+import { AuthSignUpFormSchema, type AuthSignUpFormInput } from "@nexa/shared";
 import { track } from "@nexa/analytics/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,18 +35,19 @@ export default function SignupPage() {
     watch,
     getValues,
     formState: { errors, isSubmitting },
-  } = useForm<AuthSignUpInput>({
-    resolver: zodResolver(AuthSignUpSchema),
+  } = useForm<AuthSignUpFormInput>({
+    resolver: zodResolver(AuthSignUpFormSchema),
     mode: "onBlur",
-    defaultValues: { name: "", email: "", password: "" },
+    defaultValues: { name: "", email: "", password: "", acceptTerms: false },
   });
 
   const password = watch("password");
 
-  async function onSubmit(data: AuthSignUpInput) {
+  async function onSubmit(data: AuthSignUpFormInput) {
     setError("");
+    const { name, email, password } = data;
     try {
-      const result = await signUp.email(data);
+      const result = await signUp.email({ name, email, password });
       if (result.error) {
         setError(result.error.message ?? "Signup failed");
         return;
@@ -59,8 +60,14 @@ export default function SignupPage() {
   }
 
   async function handleMagicSignup() {
-    const email = getValues("email");
-    const parsed = AuthSignUpSchema.pick({ email: true }).safeParse({ email });
+    const values = getValues();
+    const parsed = AuthSignUpFormSchema.pick({
+      email: true,
+      acceptTerms: true,
+    }).safeParse({
+      email: values.email,
+      acceptTerms: values.acceptTerms,
+    });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Enter a valid email");
       return;
@@ -144,6 +151,32 @@ export default function SignupPage() {
             />
             <PasswordStrength password={password} />
           </FormField>
+
+          <div className="space-y-2">
+            <label className="flex items-start gap-2.5 text-sm leading-relaxed">
+              <input
+                id="acceptTerms"
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary"
+                {...register("acceptTerms")}
+              />
+              <span className="text-muted-foreground">
+                I agree to the{" "}
+                <Link href="/terms" className="text-primary hover:underline" target="_blank">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="text-primary hover:underline" target="_blank">
+                  Privacy Policy
+                </Link>
+              </span>
+            </label>
+            {errors.acceptTerms?.message ? (
+              <p className="text-sm text-destructive" role="alert">
+                {errors.acceptTerms.message}
+              </p>
+            ) : null}
+          </div>
 
           {error ? (
             <Alert variant="destructive">

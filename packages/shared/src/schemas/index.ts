@@ -5,6 +5,7 @@ import {
   TRANSACTION_TYPES,
 } from "../constants/index.js";
 import { CurrencySchema } from "../currency/index.js";
+import { TimezoneSchema } from "../timezone/index.js";
 
 export const CategorySchema = z.enum(CATEGORIES);
 export const GoalPrioritySchema = z.enum(GOAL_PRIORITIES);
@@ -204,6 +205,12 @@ export const AuthSignUpSchema = z.object({
   password: passwordField,
 });
 
+export const AuthSignUpFormSchema = AuthSignUpSchema.extend({
+  acceptTerms: z.boolean().refine((val) => val === true, {
+    message: "You must accept the Terms of Service and Privacy Policy",
+  }),
+});
+
 export const AuthSignInSchema = z.object({
   email: emailField,
   password: z.string().min(1, "Password is required"),
@@ -218,12 +225,7 @@ export const AuthResetPasswordSchema = z.object({
 });
 
 export const UpdateUserSettingsSchema = z.object({
-  timezone: z
-    .string()
-    .trim()
-    .min(1, "Timezone is required")
-    .max(64, "Timezone is too long")
-    .optional(),
+  timezone: TimezoneSchema.optional(),
   weeklyReviewEmail: z.boolean().optional(),
   passkeyPromptDismissed: z.boolean().optional(),
   primaryCurrency: CurrencySchema.optional(),
@@ -234,11 +236,7 @@ export const ProfileCurrencyFormSchema = z.object({
 });
 
 export const ProfileTimezoneFormSchema = z.object({
-  timezone: z
-    .string()
-    .trim()
-    .min(1, "Timezone is required")
-    .max(64, "Timezone is too long"),
+  timezone: TimezoneSchema,
 });
 
 export const SupportTicketCategorySchema = z.enum([
@@ -367,6 +365,7 @@ export type ProfileCurrencyFormInput = z.infer<
   typeof ProfileCurrencyFormSchema
 >;
 export type AuthSignUpInput = z.infer<typeof AuthSignUpSchema>;
+export type AuthSignUpFormInput = z.infer<typeof AuthSignUpFormSchema>;
 export type AuthSignInInput = z.infer<typeof AuthSignInSchema>;
 export type AuthForgotPasswordInput = z.infer<typeof AuthForgotPasswordSchema>;
 export type AuthResetPasswordInput = z.infer<typeof AuthResetPasswordSchema>;

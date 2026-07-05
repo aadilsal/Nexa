@@ -184,4 +184,4 @@ export const ENGINE_VERSION = "1.0.0";
 
 export const DEFAULT_EMERGENCY_FUND_MONTHS = 3;
 
-export const DEFAULT_TIMEZONE = "Asia/Karachi";
+export { DEFAULT_TIMEZONE } from "../timezone/index.js";

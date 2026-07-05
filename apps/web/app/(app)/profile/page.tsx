@@ -12,12 +12,15 @@ import {
   type ProfileTimezoneFormInput,
   type ProfileCurrencyFormInput,
   type CurrencyCode,
+  DEFAULT_TIMEZONE,
+  isSupportedTimezone,
 } from "@nexa/shared";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { CurrencySelect } from "@/components/currency-select";
+import { TimezoneSelect } from "@/components/timezone-select";
 import {
   HighlightSurface,
   PageShell,
@@ -68,12 +71,16 @@ export default function ProfilePage() {
     register: registerTimezone,
     handleSubmit: handleTimezoneSubmit,
     reset: resetTimezone,
-    formState: { errors: timezoneErrors },
+    watch: watchTimezone,
+    setValue: setTimezoneValue,
+    formState: { errors: timezoneErrors, isSubmitting: isSavingTimezone },
   } = useForm<ProfileTimezoneFormInput>({
     resolver: zodResolver(ProfileTimezoneFormSchema),
     mode: "onBlur",
-    defaultValues: { timezone: "" },
+    defaultValues: { timezone: DEFAULT_TIMEZONE },
   });
+
+  const watchedTimezone = watchTimezone("timezone");
 
   const {
     register: registerCurrency,
@@ -94,7 +101,11 @@ export default function ProfilePage() {
   useEffect(() => {
     if (profile) {
       resetName({ name: profile.user.name ?? "" });
-      resetTimezone({ timezone: profile.settings.timezone });
+      resetTimezone({
+        timezone: isSupportedTimezone(profile.settings.timezone)
+          ? profile.settings.timezone
+          : DEFAULT_TIMEZONE,
+      });
       resetCurrency({
         primaryCurrency: profile.settings.primaryCurrency ?? "PKR",
       });
@@ -200,18 +211,36 @@ export default function ProfilePage() {
         </SettingsGroup>
 
         <SettingsGroup label="Preferences">
-          <SettingsRow label="Timezone">
-            <Input
-              id="timezone"
-              error={!!timezoneErrors.timezone}
-              {...registerTimezone("timezone", {
-                onBlur: () => {
-                  void handleTimezoneSubmit((data) =>
-                    updateSettings.mutate(data),
-                  )();
-                },
-              })}
-            />
+          <SettingsRow>
+            <form
+              onSubmit={handleTimezoneSubmit((data) =>
+                updateSettings.mutate({ timezone: data.timezone }),
+              )}
+              noValidate
+              className="space-y-3"
+            >
+              <FormField
+                label="Timezone"
+                htmlFor="timezone"
+                error={timezoneErrors.timezone?.message}
+              >
+                <input type="hidden" {...registerTimezone("timezone")} />
+                <div className="flex gap-2">
+                  <TimezoneSelect
+                    id="timezone"
+                    value={watchedTimezone}
+                    error={!!timezoneErrors.timezone}
+                    onChange={(value) => setTimezoneValue("timezone", value)}
+                  />
+                  <Button type="submit" loading={isSavingTimezone}>
+                    Save
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Used for daily Safe To Spend resets and weekly review timing.
+                </p>
+              </FormField>
+            </form>
           </SettingsRow>
           <SettingsRow>
             <form

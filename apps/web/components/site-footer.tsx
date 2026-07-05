@@ -1,25 +1,78 @@
 import Link from "next/link";
+import { MapPin } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 
-export function SiteFooter() {
+const FOOTER_LINKS = {
+  product: [
+    { href: "/faq", label: "FAQ" },
+    { href: "/changelog", label: "Changelog" },
+    { href: "/roadmap", label: "Roadmap" },
+  ],
+  company: [
+    { href: "/about", label: "About" },
+    { href: "/contact", label: "Contact" },
+    { href: "/security", label: "Security" },
+  ],
+  legal: [
+    { href: "/privacy", label: "Privacy Policy" },
+    { href: "/terms", label: "Terms of Service" },
+  ],
+} as const;
+
+function FooterLinkGroup({
+  title,
+  links,
+}: {
+  title: string;
+  links: readonly { href: string; label: string }[];
+}) {
   return (
-    <footer className="mt-auto border-t border-border bg-card py-10">
-      <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 px-4 text-sm text-muted-foreground sm:flex-row sm:justify-between">
-        <div className="text-center sm:text-left">
-          <p>&copy; {new Date().getFullYear()} {BRAND.name}. All rights reserved.</p>
-          <p className="mt-1 text-xs">{BRAND.tagline.short}</p>
+    <div>
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-foreground">
+        {title}
+      </p>
+      <ul className="space-y-2">
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link
+              href={link.href}
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function SiteFooter() {
+  const year = new Date().getFullYear();
+
+  return (
+    <footer className="mt-auto border-t border-border bg-card">
+      <div className="mx-auto max-w-5xl px-4 py-12">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="sm:col-span-2 lg:col-span-1">
+            <p className="text-lg font-semibold text-foreground">{BRAND.name}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{BRAND.tagline.short}</p>
+            <p className="mt-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
+              Built in Pakistan 🇵🇰
+            </p>
+          </div>
+          <FooterLinkGroup title="Product" links={FOOTER_LINKS.product} />
+          <FooterLinkGroup title="Company" links={FOOTER_LINKS.company} />
+          <FooterLinkGroup title="Legal" links={FOOTER_LINKS.legal} />
         </div>
-        <nav className="flex flex-wrap justify-center gap-4">
-          <Link href="/about" className="hover:text-foreground">
-            About
-          </Link>
-          <Link href="/contact" className="hover:text-foreground">
-            Contact
-          </Link>
-          <Link href="/support" className="hover:text-foreground">
-            Support
-          </Link>
-        </nav>
+
+        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 text-sm text-muted-foreground sm:flex-row">
+          <p>&copy; {year} {BRAND.name}. All rights reserved.</p>
+          <p className="text-xs">
+            Your data stays encrypted. We never sell your financial information.
+          </p>
+        </div>
       </div>
     </footer>
   );

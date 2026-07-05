@@ -9,14 +9,17 @@ export function Header() {
         <div className="flex items-center gap-8 overflow-visible">
           <NexaLogo variant="nav" height={40} priority />
           <nav className="hidden gap-6 text-sm font-medium text-muted-foreground md:flex">
+            <Link href="#quick-answers" className="transition-colors hover:text-foreground">
+              Overview
+            </Link>
             <Link href="#features" className="transition-colors hover:text-foreground">
               Features
             </Link>
-            <Link href="#how-it-works" className="transition-colors hover:text-foreground">
-              How it works
-            </Link>
             <Link href="#security" className="transition-colors hover:text-foreground">
               Security
+            </Link>
+            <Link href="#faq" className="transition-colors hover:text-foreground">
+              FAQ
             </Link>
           </nav>
         </div>
@@ -33,7 +36,7 @@ export function Header() {
             href="/signup"
             className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 sm:px-6"
           >
-            Get Early Access
+            Get Started
           </Link>
         </div>
       </div>
