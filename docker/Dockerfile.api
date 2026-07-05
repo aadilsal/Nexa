@@ -32,5 +32,7 @@ ENV NODE_ENV=production
 COPY --from=deploy /prod/api ./
 COPY --from=build /app/apps/api/dist ./dist
 COPY --from=build /app/apps/api/prisma ./prisma
+# Second Prisma schema outputs to apps/api/node_modules/.prisma/analytics-client (not @prisma/client).
+COPY --from=build /app/apps/api/node_modules/.prisma/analytics-client ./node_modules/.prisma/analytics-client
 EXPOSE 4000
 CMD ["node", "dist/main.js"]
