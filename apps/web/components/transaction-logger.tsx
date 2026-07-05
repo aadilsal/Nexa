@@ -27,13 +27,6 @@ interface ParsedPreview {
   confidence: number;
 }
 
-const EXAMPLE_CHIPS = [
-  "Petrol 7550",
-  "Salary 120000",
-  "$500 Freelance",
-  "Charity 1000",
-] as const;
-
 export function TransactionLogger() {
   const queryClient = useQueryClient();
   const { primaryCurrency, formatAmount } = useCurrency();
@@ -172,22 +165,9 @@ export function TransactionLogger() {
         ) : null}
       </form>
 
-      <div className="flex flex-wrap gap-2">
-        {EXAMPLE_CHIPS.map((example) => (
-          <button
-            key={example}
-            type="button"
-            className="rounded-full bg-muted/50 px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            onClick={() => {
-              setRawInput(example);
-              setInputError("");
-              setPreview(null);
-            }}
-          >
-            {example}
-          </button>
-        ))}
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Type a short description and amount — we&apos;ll parse the category for you.
+      </p>
 
       <AnimatePresence>
         {preview ? (

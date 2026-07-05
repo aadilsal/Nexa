@@ -80,11 +80,18 @@ export class ReviewsService {
       }
 
       try {
+        const output = await this.engineData.calculateForUser(user.id);
         const { review, narrative } = await this.getWeeklyReview(
           user.id,
           lastWeek,
         );
-        await this.sendEmail(user.email, user.name, review, narrative);
+        await this.sendEmail(
+          user.email,
+          user.name,
+          review,
+          narrative,
+          output.goals,
+        );
         sent++;
       } catch (err) {
         this.logger.warn(`Weekly email failed for ${user.id}: ${err}`);
@@ -145,18 +152,16 @@ export class ReviewsService {
       transactions: weekTransactions,
       priorWeekTransactions,
       goals: engineInput.goals,
-      goalsAtWeekStart: engineInput.goals.map((g) => ({
-        ...g,
-        storedCurrentAmount: Math.max(
-          0,
-          g.storedCurrentAmount -
-            Math.round(
-              (output.savings.projectedSavings > 0
-                ? output.savings.projectedSavings
-                : 0) / 30,
-            ),
-        ),
-      })),
+      goalsAtWeekStart: engineInput.goals.map((goal) => {
+        const atWeekStart = outputAtWeekStart.goals.find(
+          (item) => item.id === goal.id,
+        );
+        return {
+          ...goal,
+          storedCurrentAmount:
+            atWeekStart?.currentAmount ?? goal.storedCurrentAmount,
+        };
+      }),
       expectedIncome: engineInput.expectedIncome,
       predictedMonthlyExpenses: output.expenses.predictedMonthly,
       savingsRateTarget: output.savings.targetRate,
@@ -222,6 +227,12 @@ export class ReviewsService {
     name: string | null,
     review: WeeklyReviewOutput,
     narrative: string,
+    engineGoals: Array<{
+      id: string;
+      name: string;
+      targetAmount: number;
+      currentAmount: number;
+    }>,
   ) {
     if (!this.resend) {
       this.logger.log(`Resend not configured — skip email to ${email}`);
@@ -249,13 +260,18 @@ export class ReviewsService {
       safeToSpend: review.safeToSpendTrend.end ?? 0,
       overallRating: review.overallRating,
       narrative,
-      goals: review.goalProgress.map((g) => ({
-        goalName: g.goalName,
-        progress: g.progressEnd,
-        targetAmount: 0,
-        currentAmount: 0,
-        onTrack: g.onTrack,
-      })),
+      goals: review.goalProgress.map((goal) => {
+        const engineGoal = engineGoals.find(
+          (item) => item.name === goal.goalName,
+        );
+        return {
+          goalName: goal.goalName,
+          progress: goal.progressEnd,
+          targetAmount: engineGoal?.targetAmount ?? 0,
+          currentAmount: engineGoal?.currentAmount ?? 0,
+          onTrack: goal.onTrack,
+        };
+      }),
       reportUrl: `${appUrl}/weekly-review`,
       appUrl,
     });

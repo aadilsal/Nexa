@@ -82,27 +82,23 @@ export default function OnboardingPage() {
   const [preferredCycleStart, setPreferredCycleStart] = useState(1);
   const [isFreelancer, setIsFreelancer] = useState(false);
   const [startingBalance, setStartingBalance] = useState(0);
-  const [variableEstimate, setVariableEstimate] = useState(1500);
+  const [variableEstimate, setVariableEstimate] = useState(0);
   const [primaryCurrency, setPrimaryCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
 
   const [incomes, setIncomes] = useState<IncomeRow[]>([
-    { name: "Salary", expectedAmount: 5000, currency: DEFAULT_CURRENCY },
+    { name: "", expectedAmount: 0, currency: DEFAULT_CURRENCY },
   ]);
 
   const [expenses, setExpenses] = useState<FixedExpenseRow[]>([
-    { name: "Rent", category: "HOUSING", expectedAmount: 1500, currency: DEFAULT_CURRENCY },
-    { name: "Utilities", category: "UTILITIES", expectedAmount: 200, currency: DEFAULT_CURRENCY },
-    { name: "Transport", category: "TRANSPORT", expectedAmount: 300, currency: DEFAULT_CURRENCY },
+    { name: "", category: "HOUSING", expectedAmount: 0, currency: DEFAULT_CURRENCY },
   ]);
 
   useEffect(() => {
     const detected = guessCurrencyFromLocale(navigator.language);
     setPrimaryCurrency(detected);
-    setIncomes([{ name: "Salary", expectedAmount: 5000, currency: detected }]);
+    setIncomes([{ name: "", expectedAmount: 0, currency: detected }]);
     setExpenses([
-      { name: "Rent", category: "HOUSING", expectedAmount: 1500, currency: detected },
-      { name: "Utilities", category: "UTILITIES", expectedAmount: 200, currency: detected },
-      { name: "Transport", category: "TRANSPORT", expectedAmount: 300, currency: detected },
+      { name: "", category: "HOUSING", expectedAmount: 0, currency: detected },
     ]);
   }, []);
 
@@ -397,7 +393,7 @@ export default function OnboardingPage() {
                                 next[i].expectedAmount = Number(e.target.value);
                                 setIncomes(next);
                               }}
-                              placeholder="120000"
+                              placeholder="Monthly amount"
                             />
                           </div>
                         </FormField>
@@ -472,7 +468,7 @@ export default function OnboardingPage() {
                               next[i].name = e.target.value;
                               setExpenses(next);
                             }}
-                            placeholder="Rent"
+                            placeholder="Bill name"
                           />
                         </FormField>
                         <FormField
@@ -499,7 +495,7 @@ export default function OnboardingPage() {
                                 next[i].expectedAmount = Number(e.target.value);
                                 setExpenses(next);
                               }}
-                              placeholder="25000"
+                              placeholder="Monthly amount"
                             />
                           </div>
                         </FormField>

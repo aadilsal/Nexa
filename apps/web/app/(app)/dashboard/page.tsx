@@ -149,7 +149,7 @@ export default function DashboardPage() {
   const { show: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } =
     usePasskeyPrompt(onboardingReady);
 
-  const { data: dashboard, isLoading: dashboardLoading } = useQuery({
+  const { data: dashboard, isLoading: dashboardLoading, isError: dashboardError, refetch: refetchDashboard } = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => api<DashboardData>("/dashboard"),
     enabled: authReady && onboardingReady,
@@ -208,7 +208,35 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  const emergencyGoal = dashboard?.goals.find((g) => g.isEmergencyFund);
+  if (dashboardError && !dashboard) {
+    return (
+      <>
+        <PageHeader
+          eyebrow={getGreeting()}
+          title="Your financial snapshot"
+          description="Everything you need to know before your next spending decision."
+        />
+        <Alert variant="destructive" className="mb-6">
+          <AlertTitle>Couldn&apos;t load your dashboard</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              We couldn&apos;t fetch your numbers. Nothing below is shown until
+              your real data loads.
+            </span>
+            <Button size="sm" onClick={() => void refetchDashboard()}>
+              Try again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </>
+    );
+  }
+
+  if (!dashboard) {
+    return <DashboardSkeleton />;
+  }
+
+  const emergencyGoal = dashboard.goals.find((g) => g.isEmergencyFund);
   const userName = session?.user?.name?.split(" ")[0];
 
   return (
@@ -222,7 +250,7 @@ export default function DashboardPage() {
         actions={<CanIBuyThis />}
       />
 
-      {dashboard?.cycle.status === "PENDING_CONFIRMATION" && (
+      {dashboard.cycle.status === "PENDING_CONFIRMATION" && (
         <Alert variant="info" className="mb-6">
           <AlertTitle>New financial cycle started</AlertTitle>
           <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -255,42 +283,40 @@ export default function DashboardPage() {
 
       <div className="mb-6 grid gap-4 lg:grid-cols-2">
         <SafeToSpendCard
-          amount={dashboard?.safeToSpend.today ?? 0}
-          baseline={dashboard?.safeToSpend.baseline ?? 0}
-          trendMultiplier={dashboard?.safeToSpend.trendMultiplier}
-          daysRemaining={dashboard?.cycle.daysRemaining}
-          breakdown={dashboard?.safeToSpend.breakdown}
-          explanation={
-            dashboard ? buildSafeToSpendExplanation(dashboard) : undefined
-          }
+          amount={dashboard.safeToSpend.today}
+          baseline={dashboard.safeToSpend.baseline}
+          trendMultiplier={dashboard.safeToSpend.trendMultiplier}
+          daysRemaining={dashboard.cycle.daysRemaining}
+          breakdown={dashboard.safeToSpend.breakdown}
+          explanation={buildSafeToSpendExplanation(dashboard)}
         />
         <HealthScoreCard
-          score={dashboard?.healthScore.overall ?? 0}
-          breakdown={dashboard?.healthScore.breakdown}
+          score={dashboard.healthScore.overall}
+          breakdown={dashboard.healthScore.breakdown}
         />
       </div>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Current cash"
-          value={formatAmount(dashboard?.cash.currentCashAvailable ?? 0)}
+          value={formatAmount(dashboard.cash.currentCashAvailable)}
           icon={TrendingUp}
           info={FEATURE_HELP.currentCash}
         />
         <StatCard
           label="Income this cycle"
-          value={formatAmount(dashboard?.cash.totalIncome ?? 0)}
+          value={formatAmount(dashboard.cash.totalIncome)}
           info={FEATURE_HELP.incomeCycle}
         />
         <StatCard
           label="Spent"
-          value={formatAmount(dashboard?.cash.totalExpenses ?? 0)}
+          value={formatAmount(dashboard.cash.totalExpenses)}
           info={FEATURE_HELP.spentCycle}
         />
         <StatCard
           label="Projected savings"
-          value={formatAmount(dashboard?.savings.projectedSavings ?? 0)}
-          hint={`${Math.round((dashboard?.savings.actualRate ?? 0) * 100)}% actual · ${Math.round((dashboard?.savings.targetRate ?? 0) * 100)}% target`}
+          value={formatAmount(dashboard.savings.projectedSavings)}
+          hint={`${Math.round(dashboard.savings.actualRate * 100)}% actual · ${Math.round(dashboard.savings.targetRate * 100)}% target`}
           info={FEATURE_HELP.projectedSavings}
         />
       </div>
@@ -328,7 +354,7 @@ export default function DashboardPage() {
           info={FEATURE_HELP.goalProgress}
           className="border-t-0 pt-0"
         >
-          {!dashboard?.goals.length ? (
+          {!dashboard.goals.length ? (
             <EmptyState
               icon={Target}
               title="No goals yet"
@@ -424,7 +450,7 @@ export default function DashboardPage() {
         </ContentSection>
       </div>
 
-      {dashboard?.variance.fixedExpenses.some((v) => v.variance !== 0) ? (
+      {dashboard.variance.fixedExpenses.some((v) => v.variance !== 0) ? (
         <ContentSection title="Spending vs expected" description="Fixed expenses compared to your plan">
           <ul className="divide-y divide-border/50">
             {dashboard.variance.fixedExpenses
@@ -453,9 +479,9 @@ export default function DashboardPage() {
       ) : null}
 
       <p className="mt-8 text-center text-xs text-muted-foreground">
-        Engine v{dashboard?.version}
-        {(dashboard?.charity?.thisCycle ?? 0) > 0 &&
-          ` · Charity this cycle: ${formatAmount(dashboard!.charity.thisCycle)}`}
+        Engine v{dashboard.version}
+        {dashboard.charity.thisCycle > 0 &&
+          ` · Charity this cycle: ${formatAmount(dashboard.charity.thisCycle)}`}
       </p>
     </>
   );

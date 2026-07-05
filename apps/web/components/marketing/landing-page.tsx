@@ -131,22 +131,22 @@ export function LandingPage() {
             <Card className="overflow-hidden border-primary/25 bg-card text-left shadow-floating">
               <div className="border-b border-primary/15 bg-primary-muted/60 px-6 py-3">
                 <CardDescription className="text-primary/80">
-                  Live preview · Safe to spend today
+                  Example layout · Safe to spend today
                 </CardDescription>
               </div>
               <CardHeader className="pb-2">
-                <CardTitle className="font-mono text-4xl text-primary tabular-nums">
-                  PKR 4,250
+                <CardTitle className="font-mono text-4xl text-primary/30 tabular-nums">
+                  Your amount
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-4 border-t border-border bg-surface-2 p-6 text-sm">
                 <div className="rounded-lg border border-border bg-card p-3">
                   <p className="text-muted-foreground">Health</p>
-                  <p className="mt-1 font-semibold tabular-nums">82 / 100</p>
+                  <div className="mt-2 h-6 w-16 animate-pulse rounded bg-muted" />
                 </div>
                 <div className="rounded-lg border border-border bg-card p-3">
                   <p className="text-muted-foreground">Goals on track</p>
-                  <p className="mt-1 font-semibold tabular-nums">3 of 4</p>
+                  <div className="mt-2 h-6 w-20 animate-pulse rounded bg-muted" />
                 </div>
               </CardContent>
             </Card>

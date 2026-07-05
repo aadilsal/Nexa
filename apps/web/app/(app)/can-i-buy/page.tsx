@@ -103,7 +103,7 @@ export default function CanIBuyPage() {
           >
             <Input
               id="itemName"
-              placeholder="e.g. MacBook Pro"
+              placeholder="Item name"
               error={!!errors.itemName}
               {...register("itemName")}
             />
@@ -129,7 +129,7 @@ export default function CanIBuyPage() {
               <Input
                 id="amount"
                 inputMode="numeric"
-                placeholder="50,000"
+                placeholder="Amount"
                 className="font-mono text-lg"
                 error={!!errors.amount}
                 {...register("amount")}

@@ -8,6 +8,7 @@ import {
   PageShell,
   StatStrip,
 } from "@/components/layouts/surface";
+import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { track } from "@nexa/analytics/react";
 import { cn } from "@/lib/utils";
@@ -39,7 +40,7 @@ interface WeeklyReviewData {
 
 export default function WeeklyReviewPage() {
   const { formatAmount } = useCurrency();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["weekly-review"],
     queryFn: () => api<WeeklyReviewData>("/reviews/weekly"),
   });
@@ -139,6 +140,17 @@ export default function WeeklyReviewPage() {
             </ContentSection>
           ) : null}
         </motion.div>
+      ) : isError ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-sm">
+          <p className="font-medium text-destructive">Couldn&apos;t load your weekly review</p>
+          <p className="mt-2 text-muted-foreground">
+            Your review is built from your logged transactions and goals — we
+            couldn&apos;t fetch it right now.
+          </p>
+          <Button className="mt-4" size="sm" variant="outline" onClick={() => void refetch()}>
+            Try again
+          </Button>
+        </div>
       ) : null}
     </PageShell>
   );

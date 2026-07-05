@@ -24,6 +24,7 @@ import {
   PageShell,
 } from "@/components/layouts/surface";
 import { api } from "@/lib/api";
+import packageJson from "../../../package.json";
 import { hasLocalAuthSession, useSession } from "@/lib/auth-client";
 
 interface Ticket {
@@ -129,7 +130,7 @@ export default function SupportPage() {
           deviceType: /Mobi|Android/i.test(navigator.userAgent)
             ? "mobile"
             : "desktop",
-          appVersion: "0.0.1",
+          appVersion: packageJson.version,
         }),
       }),
     onSuccess: (_data, variables) => {
