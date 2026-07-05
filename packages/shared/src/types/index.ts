@@ -1,10 +1,12 @@
 import type { Category, CycleStatus, GoalPriority, TransactionType } from "../constants/index.js";
+import type { CurrencyCode } from "../currency/index.js";
 
 export interface TransactionPayload {
   description: string;
   amount: number;
   category: Category;
   type: TransactionType;
+  currency?: CurrencyCode;
   notes?: string;
 }
 
@@ -37,12 +39,14 @@ export interface FixedExpenseData {
   name: string;
   category: Category;
   expectedAmount: number;
+  currency: CurrencyCode;
 }
 
 export interface IncomeExpectationData {
   id: string;
   name: string;
   expectedAmount: number;
+  currency: CurrencyCode;
 }
 
 export interface DashboardSummary {

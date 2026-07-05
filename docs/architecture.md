@@ -186,7 +186,7 @@ nexa/
 | **ORM** | Prisma | Type-safe database access, migrations |
 | **Database** | Neon PostgreSQL | Serverless Postgres |
 | **Cache** | Upstash Redis | Engine output cache, rate limiting |
-| **Auth** | Better Auth | Email + Google OAuth, sessions |
+| **Auth** | Better Auth | Email/password, magic link, passkeys |
 | **AI** | Groq API | Explanations only |
 | **Analytics** | PostHog | Product analytics |
 | **Email** | Resend (or similar) | Weekly review emails |
@@ -219,7 +219,6 @@ nexa/
 | POST | `/auth/sign-in` | Email login |
 | POST | `/auth/sign-out` | Logout |
 | GET | `/auth/session` | Current session |
-| POST | `/auth/google` | Google OAuth |
 | POST | `/auth/forgot-password` | Password reset request |
 | POST | `/auth/reset-password` | Password reset confirm |
 
@@ -602,7 +601,7 @@ model UserSettings {
 | Component | Implementation |
 |-----------|---------------|
 | Provider | Better Auth |
-| Methods | Email/password + Google OAuth |
+| Methods | Email/password, magic link, passkeys |
 | Password hashing | Argon2id |
 | Sessions | HTTP-only secure cookies |
 | CSRF | Better Auth built-in protection |
@@ -643,7 +642,7 @@ model UserSettings {
 ```
 
 **Why server-managed keys (not password-derived):**
-- Works with Google OAuth (no password)
+- Works with passwordless auth (magic link, passkeys)
 - Password reset doesn't lose data access
 - Supports future key rotation
 - Industry standard (envelope encryption)
@@ -913,7 +912,7 @@ Every formula in `finance-engine-spec.md` Section 14 must have corresponding tes
 
 ### 11.3 API Integration Tests
 
-- Auth flows (signup, login, Google OAuth)
+- Auth flows (signup, login, magic link, passkeys)
 - Transaction CRUD with ledger integrity
 - Encryption/decryption round-trip
 - Rate limiting enforcement

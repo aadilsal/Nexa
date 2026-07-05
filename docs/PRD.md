@@ -281,7 +281,7 @@ Is this correct?
 
 | ID | Feature | Description |
 |----|---------|-------------|
-| F-01 | Authentication | Email/password + Google OAuth |
+| F-01 | Authentication | Email/password, magic link, passkeys |
 | F-02 | Onboarding | Income, fixed expenses, variable estimate, goals, payday |
 | F-03 | Financial Cycles | Payday-to-payday cycle management with rollover |
 | F-04 | Fast Expense Logging | Natural language input, auto-categorization, < 5 sec |
@@ -471,7 +471,7 @@ Security hardening, envelope encryption, audit logs, export/delete, PostHog, tes
 | Users don't log expenses | Immediate post-log value (STS update, insights) |
 | STS feels unpredictable | Conservative ±15% trend adjustment; transparent formula |
 | AI hallucinates numbers | Engine-only calculations; Groq receives structured JSON |
-| Google OAuth + encryption conflict | Server-managed DEKs, not password-derived |
+| Passwordless auth + encryption | Server-managed DEKs, not password-derived |
 | Freelancer income volatility | Variable income logging; income stability in health score |
 | Cold start inaccurate forecasts | Onboarding variable estimate; replaced by history after 2–3 cycles |
 | Scope creep | Explicit "Will Not Have" list; phase-gated development |

@@ -17,7 +17,7 @@ export class OnboardingController {
   }
 
   @Post("preview")
-  preview(@Body() body: unknown) {
+  async preview(@Body() body: unknown) {
     const input = OnboardingPreviewSchema.parse(body);
     return this.onboardingService.preview(input);
   }

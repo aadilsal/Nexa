@@ -1,34 +1,71 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "motion/react";
-import { useState } from "react";
+import { ArrowRight, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useState, useEffect } from "react";
+import { ParseTransactionSchema, type CurrencyCode } from "@nexa/shared";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { CurrencySelect } from "@/components/currency-select";
 import { api } from "@/lib/api";
+import { useCurrency } from "@/lib/currency";
 import { track } from "@nexa/analytics/react";
-import { formatPKR } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface ParsedPreview {
   description: string;
   amount: number;
   category: string;
   type: string;
+  currency?: string;
   confidence: number;
 }
 
+const EXAMPLE_CHIPS = [
+  "Petrol 7550",
+  "Salary 120000",
+  "$500 Freelance",
+  "Charity 1000",
+] as const;
+
 export function TransactionLogger() {
   const queryClient = useQueryClient();
+  const { primaryCurrency, formatAmount } = useCurrency();
   const [rawInput, setRawInput] = useState("");
+  const [currency, setCurrency] = useState<CurrencyCode>(primaryCurrency);
+  const [inputError, setInputError] = useState("");
   const [preview, setPreview] = useState<ParsedPreview | null>(null);
 
+  useEffect(() => {
+    setCurrency(primaryCurrency);
+  }, [primaryCurrency]);
+
+  function validateInput(input: string): string | null {
+    const result = ParseTransactionSchema.safeParse({ rawInput: input });
+    if (!result.success) {
+      return result.error.issues[0]?.message ?? "Invalid entry";
+    }
+    return null;
+  }
+
+  function submitPreview(input: string) {
+    const error = validateInput(input);
+    if (error) {
+      setInputError(error);
+      return;
+    }
+    setInputError("");
+    parseMutation.mutate({ rawInput: input, currency });
+  }
+
   const parseMutation = useMutation({
-    mutationFn: (input: string) =>
+    mutationFn: (input: { rawInput: string; currency: CurrencyCode }) =>
       api<ParsedPreview>("/transactions/parse", {
         method: "POST",
-        body: JSON.stringify({ rawInput: input }),
+        body: JSON.stringify(input),
       }),
     onSuccess: (data) => setPreview(data),
     onError: (err) =>
@@ -36,7 +73,7 @@ export function TransactionLogger() {
   });
 
   const logMutation = useMutation({
-    mutationFn: (input: string) =>
+    mutationFn: (input: { rawInput: string; currency: CurrencyCode }) =>
       api<{
         transaction: ParsedPreview & { eventId: string };
         safeToSpend: { before: number; after: number };
@@ -44,18 +81,17 @@ export function TransactionLogger() {
         insight: string | null;
       }>("/transactions", {
         method: "POST",
-        body: JSON.stringify({ rawInput: input }),
+        body: JSON.stringify(input),
       }),
     onSuccess: (data) => {
       setRawInput("");
       setPreview(null);
-      track(
-        data.transaction.type === "INCOME" ? "transaction_logged" : "transaction_logged",
-        { type: data.transaction.type === "INCOME" ? "income" : "expense" },
-      );
+      track("transaction_logged", {
+        type: data.transaction.type === "INCOME" ? "income" : "expense",
+      });
       toast.success(
         data.insight ??
-          `Logged! Safe To Spend: ${formatPKR(data.safeToSpend.after)}`,
+          `Logged! Safe To Spend: ${formatAmount(data.safeToSpend.after)}`,
       );
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -65,73 +101,120 @@ export function TransactionLogger() {
   });
 
   return (
-    <Card className="mb-8">
-      <CardTitle className="mb-1">Log expense or income</CardTitle>
-      <CardDescription className="mb-4">
-        Try: Petrol 7550 · Salary 120000 · Charity 1000
-      </CardDescription>
-
+    <div className="space-y-4">
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (rawInput.trim()) parseMutation.mutate(rawInput.trim());
+          if (rawInput.trim()) submitPreview(rawInput.trim());
         }}
-        className="flex gap-3"
       >
-        <Input
-          value={rawInput}
-          onChange={(e) => {
-            setRawInput(e.target.value);
-            if (preview) setPreview(null);
-          }}
-          placeholder="Description amount"
-          className="flex-1 font-mono"
-          autoFocus
-        />
-        <Button type="submit" disabled={parseMutation.isPending || !rawInput.trim()}>
-          {parseMutation.isPending ? "..." : "Preview"}
-        </Button>
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-2xl bg-muted/30 px-4 py-2 transition-colors focus-within:bg-muted/40",
+            inputError && "ring-2 ring-destructive/40",
+          )}
+        >
+          <CurrencySelect
+            value={currency}
+            onChange={setCurrency}
+            compact
+            className="shrink-0 border-0 bg-transparent"
+          />
+          <Input
+            value={rawInput}
+            onChange={(e) => {
+              setRawInput(e.target.value);
+              if (inputError) setInputError("");
+              if (preview) setPreview(null);
+            }}
+            onBlur={() => {
+              if (rawInput.trim()) {
+                const error = validateInput(rawInput.trim());
+                setInputError(error ?? "");
+              }
+            }}
+            placeholder="Description amount"
+            className="h-11 flex-1 border-0 bg-transparent px-0 font-mono shadow-none focus-visible:ring-0"
+            maxLength={200}
+          />
+          <Button
+            type="submit"
+            size="sm"
+            variant="ghost"
+            className="shrink-0 gap-1 text-primary"
+            disabled={parseMutation.isPending || !rawInput.trim()}
+          >
+            {parseMutation.isPending ? "…" : "Preview"}
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </div>
+        {inputError ? (
+          <p className="mt-2 text-sm text-destructive" role="alert">
+            {inputError}
+          </p>
+        ) : null}
       </form>
 
-      <AnimatePresence>
-        {preview && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="mt-4 rounded-lg border border-border bg-muted/50 p-4"
+      <div className="flex flex-wrap gap-2">
+        {EXAMPLE_CHIPS.map((example) => (
+          <button
+            key={example}
+            type="button"
+            className="rounded-full bg-muted/50 px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            onClick={() => {
+              setRawInput(example);
+              setInputError("");
+              setPreview(null);
+            }}
           >
-            <p className="text-sm font-medium">Confirm transaction</p>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-              <span className="text-muted-foreground">Description</span>
-              <span>{preview.description}</span>
-              <span className="text-muted-foreground">Amount</span>
-              <span className="font-mono">{formatPKR(preview.amount)}</span>
-              <span className="text-muted-foreground">Category</span>
-              <span>{preview.category}</span>
-              <span className="text-muted-foreground">Type</span>
-              <span>{preview.type}</span>
+            {example}
+          </button>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {preview ? (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="flex flex-col gap-3 rounded-xl bg-muted/30 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
+              <span className="font-medium">{preview.description}</span>
+              <Badge variant="outline" className="text-[10px]">
+                {preview.category}
+              </Badge>
+              <span className="font-mono tabular-nums text-foreground">
+                {preview.type === "INCOME" ? "+" : "−"}
+                {formatAmount(
+                  preview.amount,
+                  (preview.currency as CurrencyCode | undefined) ?? currency,
+                )}
+              </span>
             </div>
-            <div className="mt-4 flex gap-2">
+            <div className="flex shrink-0 gap-2">
               <Button
                 size="sm"
-                onClick={() => logMutation.mutate(rawInput.trim())}
-                disabled={logMutation.isPending}
+                onClick={() =>
+                  logMutation.mutate({ rawInput: rawInput.trim(), currency })
+                }
+                loading={logMutation.isPending}
               >
-                {logMutation.isPending ? "Saving..." : "Confirm & Log"}
+                Confirm
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
                 onClick={() => setPreview(null)}
+                aria-label="Cancel preview"
               >
-                Cancel
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
-    </Card>
+    </div>
   );
 }

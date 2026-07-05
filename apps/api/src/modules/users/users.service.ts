@@ -2,12 +2,14 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { UpdateProfileSchema, UpdateUserSettingsSchema } from "@nexa/shared";
 import { PrismaService } from "../../common/prisma/prisma.module";
 import { UserEncryptionService } from "../../common/encryption/user-encryption.service";
+import { RedisService } from "../../common/redis/redis.service";
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userEncryption: UserEncryptionService,
+    private readonly redis: RedisService,
   ) {}
 
   async getProfile(userId: string) {
@@ -42,6 +44,7 @@ export class UsersService {
         timezone: "Asia/Karachi",
         weeklyReviewEmail: true,
         passkeyPromptDismissed: false,
+        primaryCurrency: "PKR",
       },
       passkeys: user.passkeys,
       pendingDeletion: user.accountDeletion
@@ -55,6 +58,7 @@ export class UsersService {
           id: e.id,
           name: e.name,
           category: e.category,
+          currency: e.currency,
           expectedAmount: await this.userEncryption.decryptNumberForUser(
             userId,
             e.encryptedExpectedAmount,
@@ -65,6 +69,7 @@ export class UsersService {
         incomeExpectations.map(async (i) => ({
           id: i.id,
           name: i.name,
+          currency: i.currency,
           expectedAmount: await this.userEncryption.decryptNumberForUser(
             userId,
             i.encryptedExpectedAmount,
@@ -78,6 +83,7 @@ export class UsersService {
           priority: g.priority,
           targetDate: g.targetDate,
           isEmergencyFund: g.isEmergencyFund,
+          currency: g.currency,
           targetAmount: await this.userEncryption.decryptNumberForUser(
             userId,
             g.encryptedTargetAmount,
@@ -107,6 +113,10 @@ export class UsersService {
       create: { userId, ...input },
       update: input,
     });
+
+    if (input.primaryCurrency != null) {
+      await this.redis.delPattern(`engine:${userId}:`);
+    }
 
     return this.getProfile(userId);
   }

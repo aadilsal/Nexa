@@ -4,9 +4,14 @@ import {
   calculatePredictedMonthlyExpenses,
   suggestEmergencyFundTarget,
 } from "@nexa/finance-engine";
-import type { OnboardingInput, OnboardingPreviewInput } from "@nexa/shared";
+import {
+  normalizeCurrency,
+  type OnboardingInput,
+  type OnboardingPreviewInput,
+} from "@nexa/shared";
 import { PrismaService } from "../../common/prisma/prisma.module";
 import { UserEncryptionService } from "../../common/encryption/user-encryption.service";
+import { CurrencyService } from "../../common/currency/currency.service";
 import { CyclesService } from "../cycles/cycles.service";
 
 @Injectable()
@@ -15,6 +20,7 @@ export class OnboardingService {
     private readonly prisma: PrismaService,
     private readonly userEncryption: UserEncryptionService,
     private readonly cycles: CyclesService,
+    private readonly currency: CurrencyService,
   ) {}
 
   async getStatus(userId: string) {
@@ -25,34 +31,59 @@ export class OnboardingService {
     return { complete: user.onboardingComplete };
   }
 
-  preview(input: OnboardingPreviewInput) {
+  async preview(input: OnboardingPreviewInput) {
+    const currencyCtx = await this.currency.buildContext(input.primaryCurrency);
+
+    const toPrimary = (amount: number, currency?: string) =>
+      this.currency.toPrimary(amount, currency, currencyCtx);
+
     const recurringTotal = input.fixedExpenses.reduce(
-      (sum, e) => sum + e.expectedAmount,
+      (sum, e) => sum + toPrimary(e.expectedAmount, e.currency),
       0,
+    );
+    const variableInPrimary = toPrimary(
+      input.variableEstimate,
+      currencyCtx.primaryCurrency,
     );
     const predictedMonthly = calculatePredictedMonthlyExpenses({
       recurringTotal,
-      variableEstimate: input.variableEstimate,
+      variableEstimate: variableInPrimary,
       completedCyclesCount: 0,
     });
     const emergencyFundTarget = suggestEmergencyFundTarget(predictedMonthly);
-    return { predictedMonthly, emergencyFundTarget, recurringTotal };
+    return {
+      predictedMonthly,
+      emergencyFundTarget,
+      recurringTotal,
+      primaryCurrency: currencyCtx.primaryCurrency,
+    };
   }
 
   async complete(userId: string, input: OnboardingInput) {
+    const currencyCtx = await this.currency.buildContext(input.primaryCurrency);
+
+    const toPrimary = (amount: number, currency?: string) =>
+      this.currency.toPrimary(amount, currency, currencyCtx);
+
     const recurringTotal = input.fixedExpenses.reduce(
-      (sum, e) => sum + e.expectedAmount,
+      (sum, e) => sum + toPrimary(e.expectedAmount, e.currency),
       0,
+    );
+
+    const variableInPrimary = toPrimary(
+      input.variableEstimate,
+      currencyCtx.primaryCurrency,
     );
 
     const predictedMonthly = calculatePredictedMonthlyExpenses({
       recurringTotal,
-      variableEstimate: input.variableEstimate,
+      variableEstimate: variableInPrimary,
       completedCyclesCount: 0,
     });
 
     const emergencyTarget =
-      input.emergencyFundTarget ?? suggestEmergencyFundTarget(predictedMonthly);
+      input.emergencyFundTarget ??
+      suggestEmergencyFundTarget(predictedMonthly);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
@@ -64,7 +95,7 @@ export class OnboardingService {
           encryptedVariableEstimate:
             await this.userEncryption.encryptNumberForUser(
               userId,
-              input.variableEstimate,
+              variableInPrimary,
             ),
           encryptedStartingBalance:
             input.startingBalance != null
@@ -78,8 +109,13 @@ export class OnboardingService {
 
       await tx.userSettings.upsert({
         where: { userId },
-        create: { userId },
-        update: {},
+        create: {
+          userId,
+          primaryCurrency: currencyCtx.primaryCurrency,
+        },
+        update: {
+          primaryCurrency: currencyCtx.primaryCurrency,
+        },
       });
 
       for (const expense of input.fixedExpenses) {
@@ -88,6 +124,10 @@ export class OnboardingService {
             userId,
             name: expense.name,
             category: expense.category,
+            currency: normalizeCurrency(
+              expense.currency,
+              currencyCtx.primaryCurrency,
+            ),
             encryptedExpectedAmount:
               await this.userEncryption.encryptNumberForUser(
                 userId,
@@ -102,6 +142,10 @@ export class OnboardingService {
           data: {
             userId,
             name: income.name,
+            currency: normalizeCurrency(
+              income.currency,
+              currencyCtx.primaryCurrency,
+            ),
             encryptedExpectedAmount:
               await this.userEncryption.encryptNumberForUser(
                 userId,
@@ -124,6 +168,7 @@ export class OnboardingService {
             priority: "EMERGENCY_FUND",
             targetDate,
             isEmergencyFund: true,
+            currency: currencyCtx.primaryCurrency,
             encryptedTargetAmount:
               await this.userEncryption.encryptNumberForUser(
                 userId,
@@ -143,6 +188,7 @@ export class OnboardingService {
             priority: goal.priority as GoalPriority,
             targetDate: new Date(goal.targetDate),
             isEmergencyFund: goal.isEmergencyFund ?? false,
+            currency: currencyCtx.primaryCurrency,
             encryptedTargetAmount:
               await this.userEncryption.encryptNumberForUser(
                 userId,
@@ -157,6 +203,10 @@ export class OnboardingService {
 
     await this.cycles.getOrCreateActiveCycle(userId);
 
-    return { success: true, predictedMonthlyExpenses: predictedMonthly };
+    return {
+      success: true,
+      predictedMonthlyExpenses: predictedMonthly,
+      primaryCurrency: currencyCtx.primaryCurrency,
+    };
   }
 }

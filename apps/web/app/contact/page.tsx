@@ -1,36 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PublicContactSchema, type PublicContactInput } from "@nexa/shared";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { FormField } from "@/components/ui/form-field";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { SiteFooter } from "@/components/site-footer";
 import { api } from "@/lib/api";
 
 export default function ContactPage() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<PublicContactInput>({
+    resolver: zodResolver(PublicContactSchema),
+    mode: "onBlur",
+    defaultValues: { name: "", email: "", message: "" },
+  });
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
+  async function onSubmit(data: PublicContactInput) {
     try {
       await api("/support/contact", {
         method: "POST",
-        body: JSON.stringify({ name, email, message }),
+        body: JSON.stringify(data),
       });
       toast.success("Message sent — we'll get back to you soon.");
-      setName("");
-      setEmail("");
-      setMessage("");
+      reset();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send message");
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -68,39 +72,42 @@ export default function ContactPage() {
           </p>
         </Card>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Name</label>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <FormField label="Name" htmlFor="name" error={errors.name?.message}>
             <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
+              id="name"
               maxLength={100}
+              error={!!errors.name}
+              {...register("name")}
             />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Email</label>
+          </FormField>
+
+          <FormField label="Email" htmlFor="email" error={errors.email?.message}>
             <Input
+              id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
               maxLength={255}
+              error={!!errors.email}
+              {...register("email")}
             />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Message</label>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              required
-              maxLength={5000}
+          </FormField>
+
+          <FormField
+            label="Message"
+            htmlFor="message"
+            error={errors.message?.message}
+          >
+            <Textarea
+              id="message"
               rows={5}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              maxLength={5000}
+              error={!!errors.message}
+              {...register("message")}
             />
-          </div>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Sending..." : "Send Message"}
+          </FormField>
+
+          <Button type="submit" loading={isSubmitting}>
+            Send Message
           </Button>
         </form>
       </div>

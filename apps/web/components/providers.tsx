@@ -5,9 +5,8 @@ import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 import { Toaster } from "sonner";
 import { AnalyticsProvider } from "@nexa/analytics/react";
-import { TooltipProvider } from "@/components/ui/tooltip";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+import { ChunkErrorHandler } from "./chunk-error-handler";
+import { NavigationProgress } from "./navigation-progress";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -15,20 +14,24 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
+            staleTime: 120_000,
+            gcTime: 600_000,
             retry: 1,
+            refetchOnWindowFocus: false,
           },
         },
       }),
   );
 
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <AnalyticsProvider apiUrl={API_URL}>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ChunkErrorHandler />
+      <NavigationProgress />
+      <AnalyticsProvider apiUrl={apiUrl}>
         <QueryClientProvider client={queryClient}>
-          <TooltipProvider delayDuration={200}>
-            {children}
-          </TooltipProvider>
+          {children}
           <Toaster richColors position="top-center" />
         </QueryClientProvider>
       </AnalyticsProvider>

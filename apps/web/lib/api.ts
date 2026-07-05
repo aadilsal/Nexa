@@ -1,3 +1,5 @@
+import { cacheBearerToken, getStoredBearerToken } from "./auth-client";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
 export class ApiError extends Error {
@@ -10,6 +12,11 @@ export class ApiError extends Error {
 }
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
+  const bearer = getStoredBearerToken();
+  if (bearer) {
+    return { Authorization: `Bearer ${bearer}` };
+  }
+
   if (typeof window === "undefined") return {};
 
   try {
@@ -20,7 +27,8 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
     const data = await response.json();
     if (data?.session?.token) {
-      return { Authorization: `Bearer ${data.session.token}` };
+      cacheBearerToken(data.session.token);
+      return { Authorization: `Bearer ${getStoredBearerToken()}` };
     }
   } catch {
     // Session unavailable

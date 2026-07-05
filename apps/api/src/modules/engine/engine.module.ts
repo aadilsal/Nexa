@@ -1,4 +1,4 @@
-import { Module, forwardRef } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { CyclesModule } from "../cycles/cycles.module";
 import { TransactionsModule } from "../transactions/transactions.module";
 import { EngineDataService } from "./engine-data.service";

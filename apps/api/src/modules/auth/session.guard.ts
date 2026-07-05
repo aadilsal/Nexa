@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.module";
+import { extractSessionToken } from "./session-token.util";
 
 export interface AuthenticatedRequest extends Request {
   userId: string;
@@ -22,9 +23,15 @@ export class SessionGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token =
-      request.cookies?.["better-auth.session_token"] ??
-      request.headers?.authorization?.replace("Bearer ", "");
+    const secret =
+      process.env.BETTER_AUTH_SECRET ??
+      "nexa-dev-secret-change-in-production-min-32-chars";
+
+    const token = await extractSessionToken(
+      { authorization: request.headers?.authorization },
+      request.cookies ?? {},
+      secret,
+    );
 
     if (!token) {
       throw new UnauthorizedException("Authentication required");

@@ -9,6 +9,7 @@ export interface TransactionPayload {
   amount: number;
   category: Category;
   type: TransactionType;
+  currency?: string;
   notes?: string;
 }
 

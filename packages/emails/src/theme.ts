@@ -45,7 +45,9 @@ export const spacing = {
 
 export const brand = {
   name: "Nexa",
-  tagline: "AI Financial Intelligence",
+  tagline: "Spend with confidence.",
+  taglinePrimary: "Know what you can spend. Stay on track.",
+  taglineMarketing: "Can I afford this? Nexa knows.",
   supportEmail: "support@nexa.app",
   address: "Karachi, Pakistan",
   year: new Date().getFullYear(),

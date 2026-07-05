@@ -15,7 +15,7 @@ export interface WelcomeEmailProps {
 export const welcomeEmailMeta = {
   subject: (p: WelcomeEmailProps) =>
     p.firstName ? `Welcome to Nexa, ${p.firstName}` : "Welcome to Nexa",
-  previewText: "Your financial intelligence starts here. Complete setup in under 5 minutes.",
+  previewText: "Know what you can spend. Stay on track.",
   purpose: "Onboard new users after signup with a calm introduction to Nexa.",
   uxReasoning:
     "First impression sets trust. No hype — explain value clearly and one primary CTA.",
@@ -57,7 +57,7 @@ export function WelcomeEmail({
 export function welcomeEmailPlainText(props: WelcomeEmailProps): string {
   return plainTextLines([
     `${greeting(props.firstName)}, welcome to ${brand.name}.`,
-    `${brand.tagline}. Your data stays private and encrypted.`,
+    `${brand.taglinePrimary}. Your data stays private and encrypted.`,
     "Complete your setup: " + props.onboardingUrl,
   ]);
 }

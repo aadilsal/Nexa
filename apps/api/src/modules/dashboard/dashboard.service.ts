@@ -1,33 +1,29 @@
 import { Injectable } from "@nestjs/common";
-import { InsightsService } from "../insights/insights.service";
+import type { EngineOutput } from "@nexa/finance-engine";
+import { RateLimitService } from "../../common/rate-limit/rate-limit.service";
 import { EngineDataService } from "../engine/engine-data.service";
 
 @Injectable()
 export class DashboardService {
   constructor(
     private readonly engineData: EngineDataService,
-    private readonly insights: InsightsService,
+    private readonly rateLimit: RateLimitService,
   ) {}
 
   async getDashboard(userId: string) {
+    await this.rateLimit.assertUserLimit(userId, "dashboard", 60, 60);
     const engine = await this.engineData.calculateForUser(userId);
-    let insight: string | null = null;
-
-    try {
-      insight = await this.insights.getDashboardInsight(userId);
-    } catch {
-      insight = null;
-    }
-
-    return { ...engine, insight };
+    return { ...engine, insight: null as string | null };
   }
 
   async getSafeToSpend(userId: string) {
+    await this.rateLimit.assertUserLimit(userId, "dashboard", 60, 60);
     const output = await this.engineData.calculateForUser(userId);
     return output.safeToSpend;
   }
 
   async getHealthScore(userId: string) {
+    await this.rateLimit.assertUserLimit(userId, "dashboard", 60, 60);
     const output = await this.engineData.calculateForUser(userId);
     return output.healthScore;
   }

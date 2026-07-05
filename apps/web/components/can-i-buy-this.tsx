@@ -20,7 +20,7 @@ export function CanIBuyThis() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(val) => {
+    <Dialog open={open} onOpenChange={(val: boolean) => {
       setOpen(val);
       if (!val) {
         setTimeout(() => { setStatus("idle"); setQuery(""); }, 300);

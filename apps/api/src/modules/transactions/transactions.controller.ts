@@ -27,9 +27,13 @@ export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Post("parse")
-  parse(@Body() body: unknown) {
+  parse(@Req() req: { userId: string }, @Body() body: unknown) {
     const input = ParseTransactionSchema.parse(body);
-    return this.transactionsService.parse(input.rawInput);
+    return this.transactionsService.parseForUser(
+      req.userId,
+      input.rawInput,
+      input.currency,
+    );
   }
 
   @Post()

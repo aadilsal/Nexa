@@ -1,3 +1,4 @@
+export * from "./brand.js";
 export const CATEGORIES = [
   "FOOD",
   "FUEL",
@@ -116,5 +117,3 @@ export const ENGINE_VERSION = "1.0.0";
 export const DEFAULT_EMERGENCY_FUND_MONTHS = 3;
 
 export const DEFAULT_TIMEZONE = "Asia/Karachi";
-
-export const DEFAULT_CURRENCY = "PKR";

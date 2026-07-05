@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SiteFooter } from "@/components/site-footer";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { BRAND } from "@/lib/brand";
 
 export default function AboutPage() {
   return (
@@ -16,7 +17,7 @@ export default function AboutPage() {
 
         <h1 className="mb-4 text-3xl font-bold">About Nexa</h1>
         <p className="mb-8 text-lg text-muted-foreground">
-          Pakistan&apos;s privacy-first financial decision platform.
+          {BRAND.tagline.primary}
         </p>
 
         <div className="space-y-6">
@@ -25,7 +26,7 @@ export default function AboutPage() {
             <CardDescription className="text-base leading-relaxed text-foreground">
               Users own their financial data. Nexa only provides the platform.
               We help you answer one question every day:{" "}
-              <strong>Can I afford this while staying on track toward my goals?</strong>
+              <strong>{BRAND.tagline.marketing}</strong>
             </CardDescription>
           </Card>
 

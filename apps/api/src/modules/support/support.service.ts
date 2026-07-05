@@ -53,7 +53,7 @@ export class SupportService {
         os: input.os,
         deviceType: input.deviceType,
         appVersion: input.appVersion,
-        consoleErrors: input.consoleErrors ?? [],
+        consoleErrors: (input.consoleErrors ?? []) as object,
         hasSnapshot: Boolean(input.includeSnapshot && input.snapshotConsent),
       },
     });

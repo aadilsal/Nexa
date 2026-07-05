@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     ports:
-      - "5434:5432"
+      - "5432:5432"
     environment:
       POSTGRES_USER: nexa
       POSTGRES_PASSWORD: nexa
@@ -25,6 +25,17 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # Web DB browser (PostgreSQL). phpMyAdmin is MySQL-only — Adminer works like it for Postgres.
+  adminer:
+    image: adminer:4
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
 
 volumes:
   pgdata:

@@ -4,6 +4,8 @@ import { GroqService } from "../../common/groq/groq.service";
 import { RedisService } from "../../common/redis/redis.service";
 import { EngineDataService } from "../engine/engine-data.service";
 
+const INSIGHT_CACHE_TTL = 3600;
+
 @Injectable()
 export class InsightsService {
   constructor(
@@ -12,10 +14,22 @@ export class InsightsService {
     private readonly redis: RedisService,
   ) {}
 
-  async getDashboardInsight(userId: string): Promise<string> {
+  async getDashboardInsight(
+    userId: string,
+    engineOutput?: EngineOutput,
+  ): Promise<string> {
+    const cacheKey = `insight:${userId}:${new Date().toISOString().slice(0, 10)}`;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) return cached;
+
     await this.checkAiRateLimit(userId);
-    const output = await this.engineData.calculateForUser(userId);
-    return this.groq.explain(output, "Write today's brief financial insight.");
+    const output = engineOutput ?? (await this.engineData.calculateForUser(userId));
+    const insight = await this.groq.explain(
+      output,
+      "Write today's brief financial insight.",
+    );
+    await this.redis.set(cacheKey, insight, INSIGHT_CACHE_TTL);
+    return insight;
   }
 
   async getPostLogInsight(

@@ -13,11 +13,17 @@ export class RedisService implements OnModuleDestroy {
 
     if (this.enabled && url) {
       this.client = new Redis(url, {
-        maxRetriesPerRequest: 3,
+        maxRetriesPerRequest: 1,
         lazyConnect: true,
+        enableOfflineQueue: false,
+        retryStrategy: () => null,
       });
-      this.client.connect().catch((err) => {
+      this.client.on("error", (err) => {
         this.logger.warn(`Redis unavailable: ${err.message}`);
+      });
+      void this.client.connect().catch((err) => {
+        this.logger.warn(`Redis unavailable: ${err.message}`);
+        void this.client?.quit().catch(() => undefined);
         this.client = null;
       });
     }

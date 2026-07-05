@@ -1,35 +1,40 @@
 import Link from "next/link";
+import { NexaLogo } from "./nexa-logo";
 import { ThemeToggle } from "./theme-toggle";
-import { Button } from "./ui/button";
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto max-w-5xl flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-display font-bold text-lg">N</span>
-            </div>
-            <span className="font-display font-bold text-xl tracking-tight hidden sm:inline-block">
-              Nexa
-            </span>
-          </Link>
-          <nav className="hidden md:flex gap-6 text-sm font-medium text-muted-foreground">
-            <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
-            <Link href="#how-it-works" className="hover:text-foreground transition-colors">How it works</Link>
-            <Link href="#security" className="hover:text-foreground transition-colors">Security</Link>
+    <header className="sticky top-0 z-50 w-full overflow-visible border-b border-border bg-card/95 shadow-sm backdrop-blur supports-backdrop-filter:bg-card/90">
+      <div className="container mx-auto flex h-[4.25rem] max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-8 overflow-visible">
+          <NexaLogo variant="nav" height={40} priority />
+          <nav className="hidden gap-6 text-sm font-medium text-muted-foreground md:flex">
+            <Link href="#features" className="transition-colors hover:text-foreground">
+              Features
+            </Link>
+            <Link href="#how-it-works" className="transition-colors hover:text-foreground">
+              How it works
+            </Link>
+            <Link href="#security" className="transition-colors hover:text-foreground">
+              Security
+            </Link>
           </nav>
         </div>
-        
-        <div className="flex items-center gap-4">
+
+        <div className="flex items-center gap-3 sm:gap-4">
           <ThemeToggle />
-          <Link href="/login" className="hidden sm:inline-block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            href="/login"
+            className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-block"
+          >
             Log in
           </Link>
-          <Button asChild className="rounded-full px-6">
-            <Link href="/dashboard">Get Early Access</Link>
-          </Button>
+          <Link
+            href="/signup"
+            className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 sm:px-6"
+          >
+            Get Early Access
+          </Link>
         </div>
       </div>
     </header>

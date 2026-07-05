@@ -1,10 +1,12 @@
 # Nexa
 
-**AI Financial Intelligence for Pakistan**
+**Spend with confidence.**
 
-Nexa is a privacy-first financial decision platform built for Pakistanis. It helps you answer one question every day:
+Nexa is a privacy-first financial intelligence platform built for Pakistanis.
 
-> **Can I afford this while staying on track toward my goals?**
+> **Know what you can spend. Stay on track.**
+
+> **Can I afford this? Nexa knows.**
 
 Expense logging is how Nexa learns — the product is **intelligent guidance**: Safe To Spend™, purchase simulations, goal tracking, and AI insights grounded in your real numbers.
 
@@ -74,7 +76,7 @@ The full MVP is implemented across four phases:
 | **Weekly Review** | In-app review + automated email (React Email design system) |
 | **Profile & Security** | Passkeys, magic link auth, email verification, export (JSON/CSV), account deletion |
 | **Emails** | 36 transactional templates via `@nexa/emails` (React Email + Resend) |
-| **Analytics** | First-party analytics via `@nexa/analytics` and admin dashboard |
+| **Analytics** | `@nexa/analytics` SDK — privacy-first event tracking |
 | **Deploy** | Docker API image, GitHub Actions CI, Vercel + Render + Neon target stack |
 
 ---
@@ -122,7 +124,7 @@ Every feature, screen, and email follows this mindset — calm, trustworthy, min
 | AI | Groq (Llama 3.3) — explanation layer only |
 | Cache | Redis |
 | Email | Resend + `@nexa/emails` (React Email) |
-| Analytics | First-party `@nexa/analytics` + admin platform |
+| Analytics | `@nexa/analytics` (self-hosted) |
 | Monorepo | Turborepo + pnpm |
 
 ---
@@ -137,7 +139,6 @@ nexa/
 ├── packages/
 │   ├── finance-engine/         # Financial Intelligence Engine v1.0
 │   ├── shared/                 # Zod schemas, constants, types
-│   ├── analytics/              # First-party analytics SDK
 │   └── emails/                 # Transactional email design system
 ├── docs/                       # PRD, engine spec, architecture
 ├── docker/                     # Compose + API Dockerfile
@@ -156,13 +157,15 @@ nexa/
 
 ### Setup
 
+Use **one** env file at the repo root only (`/.env`). Do not create `apps/api/.env` or `apps/web/.env`.
+
 ```bash
 pnpm install
 cp .env.example .env
-# Set BETTER_AUTH_SECRET and KEK in .env
+# Set BETTER_AUTH_SECRET, KEK, and DATABASE_URL in .env
 
 docker compose -f docker/docker-compose.yml up -d
-pnpm db:push   # loads root .env; Postgres is on localhost:5434 (avoids local PG conflicts)
+pnpm db:push
 pnpm dev
 ```
 
@@ -171,7 +174,18 @@ pnpm dev
 | Frontend | http://localhost:3000 |
 | API | http://localhost:4000/api/v1 |
 | Swagger | http://localhost:4000/api/v1/docs |
+| **DB browser (Adminer)** | http://localhost:8080 |
 | Email preview | `pnpm --filter @nexa/emails preview` |
+
+**Browse databases:** open [Adminer](http://localhost:8080) (PostgreSQL — not phpMyAdmin, which is MySQL-only). Login with:
+
+| Field | Value |
+|-------|-------|
+| System | PostgreSQL |
+| Server | `postgres` |
+| Username | `nexa` |
+| Password | `nexa` |
+| Database | `nexa` or `nexa_analytics` |
 
 Generate local secrets:
 
@@ -188,7 +202,6 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 | [Product Requirements Document](./docs/PRD.md) | Product vision, features, user stories |
 | [Finance Engine Specification](./docs/finance-engine-spec.md) | Formulas, rules, engine v1.0.0 |
 | [Technical Architecture](./docs/architecture.md) | System design, APIs, schema, security |
-| [Admin Platform](./docs/admin-platform/README.md) | Internal ops, analytics, support, RBAC |
 
 ---
 

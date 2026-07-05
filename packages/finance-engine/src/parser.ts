@@ -1,7 +1,8 @@
-import type { Category, TransactionType } from "@nexa/shared";
+import type { Category, CurrencyCode, TransactionType } from "@nexa/shared";
 import {
   CATEGORY_KEYWORDS,
   INCOME_KEYWORDS,
+  normalizeCurrency,
 } from "@nexa/shared";
 
 export interface ParsedTransactionResult {
@@ -9,10 +10,68 @@ export interface ParsedTransactionResult {
   amount: number;
   category: Category;
   type: TransactionType;
+  currency?: CurrencyCode;
   confidence: number;
 }
 
-function extractAmount(input: string): { amount: number; text: string } | null {
+function extractAmount(
+  input: string,
+): { amount: number; text: string; currency?: CurrencyCode } | null {
+  const eurPrefix = input.match(
+    /^€\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s+(.+)$/i,
+  );
+  if (eurPrefix) {
+    return {
+      amount: parseInt(eurPrefix[1].replace(/,/g, ""), 10),
+      text: eurPrefix[2].trim(),
+      currency: "EUR",
+    };
+  }
+
+  const gbpPrefix = input.match(
+    /^£\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s+(.+)$/i,
+  );
+  if (gbpPrefix) {
+    return {
+      amount: parseInt(gbpPrefix[1].replace(/,/g, ""), 10),
+      text: gbpPrefix[2].trim(),
+      currency: "GBP",
+    };
+  }
+
+  const usdPrefix = input.match(
+    /^\$\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s+(.+)$/i,
+  );
+  if (usdPrefix) {
+    return {
+      amount: parseInt(usdPrefix[1].replace(/,/g, ""), 10),
+      text: usdPrefix[2].trim(),
+      currency: "USD",
+    };
+  }
+
+  const usdSuffix = input.match(
+    /^(.+?)\s+(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:usd|\$)\s*$/i,
+  );
+  if (usdSuffix) {
+    return {
+      text: usdSuffix[1].trim(),
+      amount: parseInt(usdSuffix[2].replace(/,/g, ""), 10),
+      currency: "USD",
+    };
+  }
+
+  const usdWordPrefix = input.match(
+    /^usd\s+(\d+(?:,\d{3})*(?:\.\d+)?)\s+(.+)$/i,
+  );
+  if (usdWordPrefix) {
+    return {
+      amount: parseInt(usdWordPrefix[1].replace(/,/g, ""), 10),
+      text: usdWordPrefix[2].trim(),
+      currency: "USD",
+    };
+  }
+
   const amountAtEnd = input.match(/^(.+?)\s+(\d+(?:,\d{3})*(?:\.\d+)?)\s*$/i);
   if (amountAtEnd) {
     return {
@@ -53,7 +112,10 @@ function isIncomeDescription(description: string): boolean {
   return INCOME_KEYWORDS.some((keyword) => normalized.includes(keyword));
 }
 
-export function parseTransactionInput(rawInput: string): ParsedTransactionResult {
+export function parseTransactionInput(
+  rawInput: string,
+  defaultCurrency: CurrencyCode = "PKR",
+): ParsedTransactionResult {
   const trimmed = rawInput.trim();
   const extracted = extractAmount(trimmed);
 
@@ -61,6 +123,10 @@ export function parseTransactionInput(rawInput: string): ParsedTransactionResult
     throw new Error("Could not parse transaction. Use format: 'Description 5000'");
   }
 
+  const currency = normalizeCurrency(
+    extracted.currency ?? defaultCurrency,
+    defaultCurrency,
+  );
   const isIncome = isIncomeDescription(extracted.text);
 
   if (isIncome) {
@@ -69,6 +135,7 @@ export function parseTransactionInput(rawInput: string): ParsedTransactionResult
       amount: extracted.amount,
       category: "INCOME",
       type: "INCOME",
+      currency,
       confidence: 0.95,
     };
   }
@@ -80,6 +147,7 @@ export function parseTransactionInput(rawInput: string): ParsedTransactionResult
     amount: extracted.amount,
     category,
     type: "EXPENSE",
+    currency,
     confidence,
   };
 }

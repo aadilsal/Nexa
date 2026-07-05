@@ -83,12 +83,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  onboardingComplete    Boolean @default(false)
-  primaryPayday         Int?
-  preferredCycleStart   Int?
   role                  UserRole @default(USER)
   adminMfaEnabled       Boolean  @default(false)
   adminMfaSecret        String?
+
+  onboardingComplete    Boolean @default(false)
+  primaryPayday         Int?
+  preferredCycleStart   Int?
 
   encryptedStartingBalance  String?
   encryptedVariableEstimate String?
@@ -238,6 +239,7 @@ model Goal {
   name       String
   priority   GoalPriority
   targetDate DateTime
+  currency   String       @default("PKR")
 
   encryptedTargetAmount  String
   encryptedCurrentAmount String?
@@ -258,6 +260,7 @@ model FixedExpense {
   userId   String
   name     String
   category Category
+  currency String   @default("PKR")
 
   encryptedExpectedAmount String
 
@@ -274,6 +277,7 @@ model IncomeExpectation {
   id     String @id @default(cuid())
   userId String
   name   String
+  currency String @default("PKR")
 
   encryptedExpectedAmount String
 
@@ -332,6 +336,7 @@ model UserSettings {
   weeklyReviewEmail     Boolean  @default(true)
   timezone              String   @default("Asia/Karachi")
   passkeyPromptDismissed Boolean @default(false)
+  primaryCurrency       String   @default("PKR")
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
