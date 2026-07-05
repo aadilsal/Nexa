@@ -21,19 +21,16 @@ RUN pnpm --filter @nexa/api exec prisma generate
 RUN pnpm --filter @nexa/api exec prisma generate --schema=prisma/analytics/schema.prisma
 RUN pnpm --filter @nexa/api build
 
+# pnpm deploy: portable prod layout with all deps correctly linked (no broken symlinks).
+FROM base AS deploy
+COPY --from=build /app ./
+RUN pnpm deploy --filter=@nexa/api --prod /prod/api
+
 FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+COPY --from=deploy /prod/api ./
 COPY --from=build /app/apps/api/dist ./dist
-COPY --from=build /app/apps/api/package.json ./
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/packages/shared/package.json ./packages/shared/package.json
-COPY --from=build /app/packages/shared/dist ./packages/shared/dist
-COPY --from=build /app/packages/finance-engine/package.json ./packages/finance-engine/package.json
-COPY --from=build /app/packages/finance-engine/dist ./packages/finance-engine/dist
-COPY --from=build /app/packages/emails/package.json ./packages/emails/package.json
-COPY --from=build /app/packages/emails/dist ./packages/emails/dist
 COPY --from=build /app/apps/api/prisma ./prisma
 EXPOSE 4000
-ENV NODE_ENV=production
 CMD ["node", "dist/main.js"]
