@@ -10,6 +10,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/nexa
+      ANALYTICS_DATABASE_URL: postgresql://ci:ci@localhost:5432/nexa_analytics
+
     steps:
       - uses: actions/checkout@v4
 
@@ -26,6 +30,6 @@ jobs:
       - run: pnpm --filter @nexa/finance-engine build
       - run: pnpm --filter @nexa/finance-engine test
       - run: pnpm --filter @nexa/emails build
-      - run: pnpm --filter @nexa/api exec prisma generate
+      - run: pnpm --filter @nexa/api db:generate
       - run: pnpm --filter @nexa/api build
       - run: pnpm --filter @nexa/web build

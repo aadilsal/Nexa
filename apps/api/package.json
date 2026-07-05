@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && nest build",
+    "build": "prisma generate && prisma generate --schema=prisma/analytics/schema.prisma && node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && nest build",
     "dev": "dotenv -e ../../.env -- nest start --watch",
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
