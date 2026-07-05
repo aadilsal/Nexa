@@ -115,8 +115,9 @@ export default function GoalsPage() {
         method: "DELETE",
       }),
     onSuccess: () => {
-      toast.success("Goal removed");
+      toast.success("Goal deleted");
       setDeleteGoal(null);
+      setEditingGoal(null);
       invalidateGoals();
     },
     onError: (err) =>
@@ -232,17 +233,28 @@ export default function GoalsPage() {
             : undefined
         }
         loading={createGoal.isPending || updateGoal.isPending}
+        deleteLoading={removeGoal.isPending}
         onSubmit={handleFormSubmit}
+        onDelete={
+          formMode === "edit" && editingGoal
+            ? () => {
+                setFormOpen(false);
+                setDeleteGoal(editingGoal);
+              }
+            : undefined
+        }
       />
 
       <Dialog open={!!deleteGoal} onOpenChange={(open) => !open && setDeleteGoal(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Remove goal?</DialogTitle>
+            <DialogTitle>Delete goal?</DialogTitle>
             <DialogDescription>
-              {deleteGoal
-                ? `"${deleteGoal.name}" will be archived. Your saved progress history stays in past cycles.`
-                : null}
+              {deleteGoal?.isEmergencyFund
+                ? `"${deleteGoal.name}" will be removed. Safe To Spend will no longer reserve cash for an emergency fund until you add one again.`
+                : deleteGoal
+                  ? `"${deleteGoal.name}" will be removed. Your saved progress history stays in past cycles.`
+                  : null}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -254,7 +266,7 @@ export default function GoalsPage() {
               loading={removeGoal.isPending}
               onClick={() => deleteGoal && removeGoal.mutate(deleteGoal.id)}
             >
-              Remove goal
+              Delete goal
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -46,7 +46,9 @@ interface GoalFormDialogProps {
   initialValues?: Partial<GoalFormValues>;
   isEmergencyFund?: boolean;
   loading?: boolean;
+  deleteLoading?: boolean;
   onSubmit: (values: GoalFormValues) => void | Promise<void>;
+  onDelete?: () => void;
 }
 
 export function GoalFormDialog({
@@ -56,7 +58,9 @@ export function GoalFormDialog({
   initialValues,
   isEmergencyFund = false,
   loading = false,
+  deleteLoading = false,
   onSubmit,
+  onDelete,
 }: GoalFormDialogProps) {
   const {
     register,
@@ -166,18 +170,40 @@ export function GoalFormDialog({
             </select>
           </FormField>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" loading={loading}>
-              {mode === "create" ? "Create goal" : "Save changes"}
-            </Button>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            {mode === "edit" && onDelete ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={onDelete}
+                loading={deleteLoading}
+                disabled={loading}
+                className="w-full sm:mr-auto sm:w-auto"
+              >
+                Delete goal
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex w-full gap-2 sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={loading || deleteLoading}
+                className="flex-1 sm:flex-none"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                loading={loading}
+                disabled={deleteLoading}
+                className="flex-1 sm:flex-none"
+              >
+                {mode === "create" ? "Create goal" : "Save changes"}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -78,21 +78,20 @@ export function GoalDetailCard({
           </p>
         </div>
 
-        <div className="flex shrink-0 gap-1">
-          <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Edit goal">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+          <Button variant="ghost" size="sm" onClick={onEdit}>
             <Pencil className="h-4 w-4" />
+            Edit
           </Button>
-          {!goal.isEmergencyFund ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onDelete}
-              aria-label="Delete goal"
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          ) : null}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onDelete}
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </Button>
         </div>
       </div>
 
