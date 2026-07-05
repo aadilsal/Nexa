@@ -9,11 +9,14 @@ import {
   IncomeExpectationInputSchema,
   OnboardingSchema,
   formatMoney,
+  type Category,
   type CurrencyCode,
 } from "@nexa/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CategorySelect } from "@/components/category-select";
 import { CurrencySelect } from "@/components/currency-select";
+import { DayOfMonthSelect } from "@/components/day-of-month-select";
 import { ContentSection } from "@/components/layouts/surface";
 import { FormField } from "@/components/ui/form-field";
 import { Separator } from "@/components/ui/separator";
@@ -26,7 +29,7 @@ import { cn } from "@/lib/utils";
 
 interface FixedExpenseRow {
   name: string;
-  category: string;
+  category: Category;
   expectedAmount: number;
   currency: CurrencyCode;
 }
@@ -285,13 +288,10 @@ export default function OnboardingPage() {
                   htmlFor="primaryPayday"
                   hint="Day of the month you get paid"
                 >
-                  <Input
+                  <DayOfMonthSelect
                     id="primaryPayday"
-                    type="number"
-                    min={1}
-                    max={31}
                     value={primaryPayday}
-                    onChange={(e) => setPrimaryPayday(Number(e.target.value))}
+                    onChange={setPrimaryPayday}
                   />
                 </FormField>
               ) : (
@@ -300,15 +300,10 @@ export default function OnboardingPage() {
                   htmlFor="preferredCycleStart"
                   hint="Day of the month your cycle begins"
                 >
-                  <Input
+                  <DayOfMonthSelect
                     id="preferredCycleStart"
-                    type="number"
-                    min={1}
-                    max={31}
                     value={preferredCycleStart}
-                    onChange={(e) =>
-                      setPreferredCycleStart(Number(e.target.value))
-                    }
+                    onChange={setPreferredCycleStart}
                   />
                 </FormField>
               )}
@@ -463,15 +458,14 @@ export default function OnboardingPage() {
                         </FormField>
                       </div>
                       <FormField label="Category" htmlFor={`expense-cat-${i}`}>
-                        <Input
+                        <CategorySelect
                           id={`expense-cat-${i}`}
                           value={expense.category}
-                          onChange={(e) => {
+                          onChange={(value) => {
                             const next = [...expenses];
-                            next[i].category = e.target.value;
+                            next[i].category = value;
                             setExpenses(next);
                           }}
-                          placeholder="HOUSING"
                         />
                       </FormField>
                       {expenses.length > 1 ? (
@@ -589,7 +583,7 @@ export default function OnboardingPage() {
               <FormField
                 label="Starting balance (optional)"
                 htmlFor="startingBalance"
-                hint="Cash you have available right now"
+                hint="Cash you have available right now — this becomes your current cash on the dashboard"
               >
                 <Input
                   id="startingBalance"
@@ -597,8 +591,13 @@ export default function OnboardingPage() {
                   min={0}
                   step={1}
                   className="font-mono"
-                  value={startingBalance}
-                  onChange={(e) => setStartingBalance(Number(e.target.value))}
+                  value={startingBalance || ""}
+                  placeholder="0"
+                  onChange={(e) =>
+                    setStartingBalance(
+                      e.target.value === "" ? 0 : Number(e.target.value),
+                    )
+                  }
                 />
               </FormField>
 

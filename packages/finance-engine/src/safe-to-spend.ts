@@ -69,12 +69,21 @@ export interface SafeToSpendInput {
   today: Date;
 }
 
+export interface SafeToSpendBreakdown {
+  currentCashAvailable: number;
+  remainingFixedExpenses: number;
+  remainingGoalContributions: number;
+  emergencyFundProtection: number;
+  shortfall: number;
+}
+
 export interface SafeToSpendResult {
   today: number;
   baseline: number;
   trendMultiplier: number;
   discretionaryPool: number;
   unclampedDiscretionaryPool: number;
+  breakdown: SafeToSpendBreakdown;
 }
 
 export function calculateSafeToSpend(input: SafeToSpendInput): SafeToSpendResult {
@@ -125,13 +134,21 @@ export function calculateSafeToSpend(input: SafeToSpendInput): SafeToSpendResult
   const trendMultiplier = getTrendMultiplier(historicalCycles, today);
   const adjusted = baseline * trendMultiplier;
   const todayAmount = roundPKR(Math.max(0, adjusted));
+  const roundedUnclamped = roundPKR(unclampedDiscretionaryPool);
 
   return {
     today: todayAmount,
     baseline: roundPKR(Math.max(0, baseline)),
     trendMultiplier,
     discretionaryPool,
-    unclampedDiscretionaryPool: roundPKR(unclampedDiscretionaryPool),
+    unclampedDiscretionaryPool: roundedUnclamped,
+    breakdown: {
+      currentCashAvailable: currentCashAvailable,
+      remainingFixedExpenses,
+      remainingGoalContributions,
+      emergencyFundProtection,
+      shortfall: Math.max(0, -roundedUnclamped),
+    },
   };
 }
 

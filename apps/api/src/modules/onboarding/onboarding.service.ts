@@ -13,6 +13,7 @@ import { PrismaService } from "../../common/prisma/prisma.module";
 import { UserEncryptionService } from "../../common/encryption/user-encryption.service";
 import { CurrencyService } from "../../common/currency/currency.service";
 import { CyclesService } from "../cycles/cycles.service";
+import { EngineDataService } from "../engine/engine-data.service";
 
 @Injectable()
 export class OnboardingService {
@@ -21,6 +22,7 @@ export class OnboardingService {
     private readonly userEncryption: UserEncryptionService,
     private readonly cycles: CyclesService,
     private readonly currency: CurrencyService,
+    private readonly engineData: EngineDataService,
   ) {}
 
   async getStatus(userId: string) {
@@ -202,6 +204,15 @@ export class OnboardingService {
     });
 
     await this.cycles.getOrCreateActiveCycle(userId);
+
+    if (input.startingBalance != null) {
+      await this.cycles.syncActiveCycleStartingBalance(
+        userId,
+        input.startingBalance,
+      );
+    }
+
+    await this.engineData.invalidateUserCache(userId);
 
     return {
       success: true,

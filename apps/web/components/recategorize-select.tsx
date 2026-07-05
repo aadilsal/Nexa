@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CATEGORIES } from "@nexa/shared";
+import { CATEGORIES, type Category } from "@nexa/shared";
+import { CategorySelect } from "@/components/category-select";
 import { api } from "@/lib/api";
 import { track } from "@nexa/analytics/react";
 
@@ -10,11 +11,15 @@ interface Props {
   category: string;
 }
 
+function asCategory(value: string): Category {
+  return (CATEGORIES.includes(value as Category) ? value : "OTHER") as Category;
+}
+
 export function RecategorizeSelect({ transactionId, category }: Props) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (newCategory: string) =>
+    mutationFn: (newCategory: Category) =>
       api(`/transactions/${transactionId}/category`, {
         method: "PATCH",
         body: JSON.stringify({ category: newCategory }),
@@ -27,17 +32,12 @@ export function RecategorizeSelect({ transactionId, category }: Props) {
   });
 
   return (
-    <select
-      value={category}
-      onChange={(e) => mutation.mutate(e.target.value)}
+    <CategorySelect
+      value={asCategory(category)}
+      onChange={(value) => mutation.mutate(value)}
       disabled={mutation.isPending}
-      className="rounded border border-border bg-background px-1 py-0.5 text-xs"
-    >
-      {CATEGORIES.map((c) => (
-        <option key={c} value={c}>
-          {c}
-        </option>
-      ))}
-    </select>
+      compact
+      className="w-auto min-w-[7.5rem] border-border bg-background text-xs"
+    />
   );
 }

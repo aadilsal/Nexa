@@ -30,6 +30,74 @@ export const TRANSACTION_TYPES = ["INCOME", "EXPENSE"] as const;
 
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 
+export const SUPPORT_TICKET_CATEGORIES = [
+  "BUG",
+  "FEEDBACK",
+  "FEATURE_REQUEST",
+  "OTHER",
+] as const;
+
+export type SupportTicketCategory = (typeof SUPPORT_TICKET_CATEGORIES)[number];
+
+export const SUPPORT_TICKET_STATUSES = [
+  "OPEN",
+  "IN_PROGRESS",
+  "WAITING_USER",
+  "RESOLVED",
+  "CLOSED",
+] as const;
+
+export type SupportTicketStatus = (typeof SUPPORT_TICKET_STATUSES)[number];
+
+export const CATEGORY_LABELS: Record<Category, string> = {
+  FOOD: "Food",
+  FUEL: "Fuel",
+  SHOPPING: "Shopping",
+  ENTERTAINMENT: "Entertainment",
+  UTILITIES: "Utilities",
+  HEALTHCARE: "Healthcare",
+  TRANSPORT: "Transport",
+  HOUSING: "Housing",
+  EDUCATION: "Education",
+  CHARITY: "Charity",
+  INVESTMENT: "Investment",
+  INCOME: "Income",
+  OTHER: "Other",
+};
+
+export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
+  INCOME: "Income",
+  EXPENSE: "Expense",
+};
+
+export const GOAL_PRIORITY_LABELS: Record<GoalPriority, string> = {
+  EMERGENCY_FUND: "Emergency fund",
+  HIGH: "High",
+  MEDIUM: "Medium",
+  LOW: "Low",
+};
+
+export const SUPPORT_TICKET_CATEGORY_LABELS: Record<
+  SupportTicketCategory,
+  string
+> = {
+  BUG: "Bug report",
+  FEEDBACK: "Feedback",
+  FEATURE_REQUEST: "Feature request",
+  OTHER: "Other",
+};
+
+export const SUPPORT_TICKET_STATUS_LABELS: Record<SupportTicketStatus, string> =
+  {
+    OPEN: "Open",
+    IN_PROGRESS: "In progress",
+    WAITING_USER: "Waiting on user",
+    RESOLVED: "Resolved",
+    CLOSED: "Closed",
+  };
+
+export const DAYS_OF_MONTH = Array.from({ length: 31 }, (_, i) => i + 1);
+
 export const CYCLE_STATUSES = [
   "ACTIVE",
   "COMPLETED",

@@ -164,12 +164,59 @@ export class CyclesService {
       where: { id: cycleId, userId },
     });
 
-    if (!cycle.encryptedStartingBalance) return 0;
+    const cycleBalance = cycle.encryptedStartingBalance
+      ? await this.userEncryption.decryptNumberForUser(
+          userId,
+          cycle.encryptedStartingBalance,
+        )
+      : 0;
 
-    return this.userEncryption.decryptNumberForUser(
+    if (cycleBalance > 0) return cycleBalance;
+
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+    });
+
+    if (!user.encryptedStartingBalance) return 0;
+
+    const userBalance = await this.userEncryption.decryptNumberForUser(
       userId,
-      cycle.encryptedStartingBalance,
+      user.encryptedStartingBalance,
     );
+
+    if (userBalance > 0 && userBalance !== cycleBalance) {
+      await this.prisma.financialCycle.update({
+        where: { id: cycleId },
+        data: {
+          encryptedStartingBalance:
+            await this.userEncryption.encryptNumberForUser(
+              userId,
+              userBalance,
+            ),
+        },
+      });
+    }
+
+    return userBalance;
+  }
+
+  async syncActiveCycleStartingBalance(
+    userId: string,
+    startingBalance: number,
+  ): Promise<void> {
+    const cycle = await this.getActiveCycle(userId);
+    if (!cycle) return;
+
+    await this.prisma.financialCycle.update({
+      where: { id: cycle.id },
+      data: {
+        encryptedStartingBalance:
+          await this.userEncryption.encryptNumberForUser(
+            userId,
+            startingBalance,
+          ),
+      },
+    });
   }
 
   async listHistory(userId: string) {

@@ -90,6 +90,10 @@ describe("calculateSafeToSpend", () => {
     expect(result.discretionaryPool).toBe(62333);
     expect(result.baseline).toBe(6233);
     expect(result.today).toBe(6233);
+    expect(result.breakdown.remainingFixedExpenses).toBe(15000);
+    expect(result.breakdown.remainingGoalContributions).toBe(25000);
+    expect(result.breakdown.emergencyFundProtection).toBe(6667);
+    expect(result.breakdown.shortfall).toBe(0);
   });
 });
 

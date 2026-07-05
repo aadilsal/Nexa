@@ -163,7 +163,10 @@ export class EngineDataService {
   }
 
   async invalidateUserCache(userId: string): Promise<void> {
-    await this.redis.delPattern(`engine:${userId}:`);
+    await Promise.all([
+      this.redis.delPattern(`engine:${userId}:`),
+      this.redis.delPattern(`insight:${userId}:`),
+    ]);
   }
 
   async calculateDiffForNewTransaction(

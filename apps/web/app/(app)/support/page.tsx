@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/ui/form-field";
+import { SupportTicketCategorySelect } from "@/components/support-ticket-category-select";
 import {
   ContentSection,
   HighlightSurface,
@@ -44,13 +45,6 @@ interface Ticket {
     }>;
   } | null;
 }
-
-const CATEGORIES = [
-  { value: "BUG", label: "Bug Report" },
-  { value: "FEEDBACK", label: "Feedback" },
-  { value: "FEATURE_REQUEST", label: "Feature Request" },
-  { value: "OTHER", label: "Other" },
-] as const;
 
 function detectBrowser() {
   const ua = navigator.userAgent;
@@ -85,6 +79,7 @@ export default function SupportPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     reset,
     formState: { errors },
   } = useForm<CreateSupportTicketFormInput>({
@@ -179,17 +174,13 @@ export default function SupportPage() {
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <FormField label="Category" htmlFor="category">
-          <select
+          <SupportTicketCategorySelect
             id="category"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            {...register("category")}
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
+            value={category}
+            onChange={(value) =>
+              setValue("category", value, { shouldValidate: true })
+            }
+          />
         </FormField>
 
         <FormField

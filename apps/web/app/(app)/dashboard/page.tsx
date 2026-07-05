@@ -67,6 +67,13 @@ interface DashboardData {
     today: number;
     baseline: number;
     trendMultiplier: number;
+    breakdown?: {
+      currentCashAvailable: number;
+      remainingFixedExpenses: number;
+      remainingGoalContributions: number;
+      emergencyFundProtection: number;
+      shortfall: number;
+    };
   };
   healthScore: {
     overall: number;
@@ -242,6 +249,7 @@ export default function DashboardPage() {
           baseline={dashboard?.safeToSpend.baseline ?? 0}
           trendMultiplier={dashboard?.safeToSpend.trendMultiplier}
           daysRemaining={dashboard?.cycle.daysRemaining}
+          breakdown={dashboard?.safeToSpend.breakdown}
         />
         <HealthScoreCard score={dashboard?.healthScore.overall ?? 0} />
       </div>

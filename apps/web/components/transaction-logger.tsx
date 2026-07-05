@@ -4,12 +4,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState, useEffect } from "react";
-import { ParseTransactionSchema, type CurrencyCode } from "@nexa/shared";
+import { ParseTransactionSchema, type Category, type CurrencyCode, type TransactionType } from "@nexa/shared";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CategorySelect } from "@/components/category-select";
 import { CurrencySelect } from "@/components/currency-select";
+import { TransactionTypeSelect } from "@/components/transaction-type-select";
 import { api } from "@/lib/api";
 import { useCurrency } from "@/lib/currency";
 import { track } from "@nexa/analytics/react";
@@ -18,8 +20,8 @@ import { cn } from "@/lib/utils";
 interface ParsedPreview {
   description: string;
   amount: number;
-  category: string;
-  type: string;
+  category: Category;
+  type: TransactionType;
   currency?: string;
   confidence: number;
 }
@@ -73,7 +75,7 @@ export function TransactionLogger() {
   });
 
   const logMutation = useMutation({
-    mutationFn: (input: { rawInput: string; currency: CurrencyCode }) =>
+    mutationFn: (previewData: ParsedPreview) =>
       api<{
         transaction: ParsedPreview & { eventId: string };
         safeToSpend: { before: number; after: number };
@@ -81,7 +83,13 @@ export function TransactionLogger() {
         insight: string | null;
       }>("/transactions", {
         method: "POST",
-        body: JSON.stringify(input),
+        body: JSON.stringify({
+          description: previewData.description,
+          amount: previewData.amount,
+          category: previewData.category,
+          type: previewData.type,
+          currency: previewData.currency ?? currency,
+        }),
       }),
     onSuccess: (data) => {
       setRawInput("");
@@ -178,13 +186,10 @@ export function TransactionLogger() {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            className="flex flex-col gap-3 rounded-xl bg-muted/30 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-4 rounded-xl bg-muted/30 px-4 py-4"
           >
             <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
               <span className="font-medium">{preview.description}</span>
-              <Badge variant="outline" className="text-[10px]">
-                {preview.category}
-              </Badge>
               <span className="font-mono tabular-nums text-foreground">
                 {preview.type === "INCOME" ? "+" : "−"}
                 {formatAmount(
@@ -192,13 +197,40 @@ export function TransactionLogger() {
                   (preview.currency as CurrencyCode | undefined) ?? currency,
                 )}
               </span>
+              {preview.confidence < 0.85 ? (
+                <Badge variant="outline" className="text-[10px]">
+                  Review category
+                </Badge>
+              ) : null}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="space-y-1.5 text-xs text-muted-foreground">
+                Category
+                <CategorySelect
+                  value={preview.category}
+                  onChange={(category) =>
+                    setPreview((current) =>
+                      current ? { ...current, category } : current,
+                    )
+                  }
+                />
+              </label>
+              <label className="space-y-1.5 text-xs text-muted-foreground">
+                Type
+                <TransactionTypeSelect
+                  value={preview.type}
+                  onChange={(type) =>
+                    setPreview((current) =>
+                      current ? { ...current, type } : current,
+                    )
+                  }
+                />
+              </label>
             </div>
             <div className="flex shrink-0 gap-2">
               <Button
                 size="sm"
-                onClick={() =>
-                  logMutation.mutate({ rawInput: rawInput.trim(), currency })
-                }
+                onClick={() => preview && logMutation.mutate(preview)}
                 loading={logMutation.isPending}
               >
                 Confirm

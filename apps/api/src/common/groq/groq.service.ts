@@ -1,10 +1,17 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { DEFAULT_CURRENCY, type CurrencyCode } from "@nexa/shared";
+import {
+  buildDeterministicNarrative,
+  enrichNarrativeData,
+  finalizeNarrative,
+  formatRatePercent,
+} from "./narrative-context";
 
-const EXPLAINER_SYSTEM_PROMPT = `You are Nexa's financial assistant for users in Pakistan (PKR currency).
+const EXPLAINER_SYSTEM_PROMPT = `You are Nexa's financial assistant for users in Pakistan.
 Explain the provided calculated financial data in clear, encouraging language.
-Never invent numbers. Only reference values provided in the JSON data.
-Be concise, actionable, and supportive. Use PKR when mentioning amounts.
-If data is insufficient, say so without guessing.`;
+Never invent numbers. Only reference values from displayValues in the JSON — copy those strings exactly when citing amounts, rates, or dates.
+Never use placeholders like [amount], [date], or [percent].
+Be concise, actionable, and supportive.`;
 
 @Injectable()
 export class GroqService {
@@ -20,16 +27,23 @@ export class GroqService {
     data: unknown,
     userQuestion?: string,
     maxTokens = 500,
+    currency: CurrencyCode = DEFAULT_CURRENCY,
   ): Promise<string> {
+    const enriched = enrichNarrativeData(data, currency);
+    const resolvedCurrency = (enriched.currency as CurrencyCode) ?? currency;
+    const deterministic =
+      buildDeterministicNarrative(enriched, resolvedCurrency) ??
+      this.fallbackInsight(enriched);
+
     if (!this.apiKey) {
-      return this.fallbackInsight(data);
+      return deterministic;
     }
 
     const messages = [
       { role: "system" as const, content: EXPLAINER_SYSTEM_PROMPT },
       {
         role: "user" as const,
-        content: `Data:\n${JSON.stringify(data, null, 2)}\n\n${
+        content: `Data:\n${JSON.stringify(enriched, null, 2)}\n\n${
           userQuestion
             ? `Question: ${userQuestion}`
             : "Provide a brief, helpful insight based on this data."
@@ -57,20 +71,20 @@ export class GroqService {
 
       if (!response.ok) {
         this.logger.warn(`Groq API error: ${response.status}`);
-        return this.fallbackInsight(data);
+        return deterministic;
       }
 
       const json = (await response.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
       };
       const content = json.choices?.[0]?.message?.content?.trim();
-      return this.sanitizeResponse(
-        content || this.fallbackInsight(data),
-        data,
-      );
+      if (!content) return deterministic;
+
+      const sanitized = this.sanitizeResponse(content, enriched);
+      return finalizeNarrative(sanitized, enriched, resolvedCurrency);
     } catch (err) {
       this.logger.warn(`Groq request failed: ${err}`);
-      return this.fallbackInsight(data);
+      return deterministic;
     }
   }
 
@@ -78,16 +92,22 @@ export class GroqService {
     data: unknown,
     message: string,
     history: Array<{ role: "user" | "assistant"; content: string }> = [],
+    currency: CurrencyCode = DEFAULT_CURRENCY,
   ): Promise<string> {
+    const enriched = enrichNarrativeData(data, currency);
+    const resolvedCurrency = (enriched.currency as CurrencyCode) ?? currency;
+    const fallback =
+      "AI insights are temporarily unavailable. Your financial numbers on the dashboard are still accurate.";
+
     if (!this.apiKey) {
-      return "AI insights are temporarily unavailable. Your financial numbers on the dashboard are still accurate.";
+      return fallback;
     }
 
     const messages = [
       { role: "system" as const, content: EXPLAINER_SYSTEM_PROMPT },
       {
         role: "user" as const,
-        content: `Current financial data:\n${JSON.stringify(data, null, 2)}`,
+        content: `Current financial data:\n${JSON.stringify(enriched, null, 2)}`,
       },
       ...history.map((h) => ({
         role: h.role as "user" | "assistant",
@@ -121,17 +141,22 @@ export class GroqService {
       const json = (await response.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
       };
-      return this.sanitizeResponse(
-        json.choices?.[0]?.message?.content?.trim() ??
-          "I couldn't generate a response. Please try again.",
-        data,
-      );
+      const content = json.choices?.[0]?.message?.content?.trim();
+      if (!content) {
+        return "I couldn't generate a response. Please try again.";
+      }
+
+      const sanitized = this.sanitizeResponse(content, enriched);
+      return finalizeNarrative(sanitized, enriched, resolvedCurrency);
     } catch {
       return "I couldn't process that right now. Please try again shortly.";
     }
   }
 
   private fallbackInsight(data: unknown): string {
+    const deterministic = buildDeterministicNarrative(data);
+    if (deterministic) return deterministic;
+
     const record = data as Record<string, unknown>;
     const sts = (record?.safeToSpend as { today?: number })?.today;
     const health = (record?.healthScore as { overall?: number })?.overall;
@@ -147,8 +172,32 @@ export class GroqService {
     const allowed = new Set<string>();
     const walk = (value: unknown) => {
       if (typeof value === "number" && Number.isFinite(value)) {
-        allowed.add(String(Math.round(value)));
+        const rounded = Math.round(value);
+        allowed.add(String(rounded));
+        allowed.add(String(value));
         allowed.add(value.toLocaleString("en-PK").replace(/,/g, ""));
+        allowed.add(formatRatePercent(value).replace("%", ""));
+
+        const pctRounded = Math.round(value * 100);
+        const pctOneDecimal = Math.round(value * 1000) / 10;
+        allowed.add(String(pctRounded));
+        allowed.add(String(pctOneDecimal));
+        allowed.add(`${pctRounded}%`);
+        allowed.add(`${pctOneDecimal}%`);
+      } else if (typeof value === "string") {
+        const isoDate = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (isoDate) {
+          allowed.add(isoDate[1]!);
+          allowed.add(String(Number(isoDate[2])));
+          allowed.add(String(Number(isoDate[3])));
+        }
+
+        const numbers = value.match(/-?\d[\d,]*(?:\.\d+)?/g);
+        numbers?.forEach((match) => {
+          const normalized = match.replace(/,/g, "");
+          allowed.add(normalized);
+          allowed.add(String(Math.round(Number(normalized))));
+        });
       } else if (Array.isArray(value)) {
         value.forEach(walk);
       } else if (value && typeof value === "object") {
@@ -161,7 +210,7 @@ export class GroqService {
 
   private sanitizeResponse(text: string, data: unknown): string {
     const allowed = this.extractAllowedNumbers(data);
-    return text.replace(/\d[\d,]*(?:\.\d+)?/g, (match) => {
+    const sanitized = text.replace(/-?\d[\d,]*(?:\.\d+)?/g, (match) => {
       const normalized = match.replace(/,/g, "");
       const asInt = String(Math.round(Number(normalized)));
       if (
@@ -171,7 +220,12 @@ export class GroqService {
       ) {
         return match;
       }
-      return "[amount]";
+      return match.startsWith("-") ? match : "";
     });
+
+    return sanitized
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s+([,.;:!?])/g, "$1")
+      .trim();
   }
 }

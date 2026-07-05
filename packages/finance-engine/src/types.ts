@@ -92,6 +92,13 @@ export interface EngineOutput {
     trendMultiplier: number;
     discretionaryPool: number;
     unclampedDiscretionaryPool: number;
+    breakdown: {
+      currentCashAvailable: number;
+      remainingFixedExpenses: number;
+      remainingGoalContributions: number;
+      emergencyFundProtection: number;
+      shortfall: number;
+    };
   };
   healthScore: {
     overall: number;

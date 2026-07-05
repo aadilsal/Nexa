@@ -39,12 +39,15 @@ export class SimulationsService {
       {
         itemName: input.itemName,
         amount: amountInPrimary,
+        currency: currencyCtx.primaryCurrency,
         recommendation: result.recommendation,
         triggeredRule: result.triggeredRule,
         impacts: result.impacts,
         suggestedWaitUntil: result.suggestedWaitUntil,
       },
       `Explain why the recommendation is ${result.recommendation} for buying ${input.itemName} at ${currencyCtx.primaryCurrency} ${amountInPrimary}.`,
+      500,
+      currencyCtx.primaryCurrency,
     );
 
     return { ...result, explanation, currency: currencyCtx.primaryCurrency };

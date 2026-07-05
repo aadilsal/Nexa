@@ -5,6 +5,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { SupportTicketStatusSelect } from "@/components/support-ticket-status-select";
+import type { SupportTicketStatus } from "@nexa/shared";
 import { api } from "@/lib/api";
 
 interface Ticket {
@@ -32,7 +34,7 @@ export default function AdminSupportPage() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
+    mutationFn: ({ id, status }: { id: string; status: SupportTicketStatus }) =>
       api(`/admin/support/tickets/${id}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
@@ -80,21 +82,12 @@ export default function AdminSupportPage() {
                   {ticket.userId ?? ticket.guestEmail ?? "Guest"}
                 </CardDescription>
               </div>
-              <select
-                value={ticket.status}
-                onChange={(e) =>
-                  updateStatus.mutate({ id: ticket.id, status: e.target.value })
+              <SupportTicketStatusSelect
+                value={ticket.status as SupportTicketStatus}
+                onChange={(status) =>
+                  updateStatus.mutate({ id: ticket.id, status })
                 }
-                className="rounded-md border border-input bg-background px-2 py-1 text-sm"
-              >
-                {["OPEN", "IN_PROGRESS", "WAITING_USER", "RESOLVED", "CLOSED"].map(
-                  (s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ),
-                )}
-              </select>
+              />
             </div>
             <p className="text-sm text-muted-foreground">{ticket.description}</p>
 

@@ -22,7 +22,8 @@ export function CurrencySelect({
       value={value}
       onChange={(e) => onChange(e.target.value as CurrencyCode)}
       className={cn(
-        "rounded-md border border-input bg-background text-sm",
+        "rounded-md border border-input bg-card text-sm text-foreground",
+        "[&>option]:bg-card [&>option]:text-foreground",
         compact ? "px-2 py-1.5" : "px-3 py-2",
         className,
       )}

@@ -9,6 +9,7 @@ import {
 import { sendNexaEmail } from "@nexa/emails";
 import { Resend } from "resend";
 import { GroqService } from "../../common/groq/groq.service";
+import { CurrencyService } from "../../common/currency/currency.service";
 import { PrismaService } from "../../common/prisma/prisma.module";
 import { EngineDataService } from "../engine/engine-data.service";
 
@@ -21,6 +22,7 @@ export class ReviewsService {
     private readonly prisma: PrismaService,
     private readonly engineData: EngineDataService,
     private readonly groq: GroqService,
+    private readonly currency: CurrencyService,
   ) {
     this.resend = process.env.RESEND_API_KEY
       ? new Resend(process.env.RESEND_API_KEY)
@@ -32,10 +34,12 @@ export class ReviewsService {
     referenceDate = new Date(),
   ): Promise<{ review: WeeklyReviewOutput; narrative: string }> {
     const review = await this.buildWeeklyReview(userId, referenceDate);
+    const currencyCtx = await this.currency.getUserContext(userId);
     const narrative = await this.groq.explain(
-      review,
+      this.withReviewNarrativeContext(review),
       "Write a concise weekly financial review summary for the user.",
       500,
+      currencyCtx.primaryCurrency,
     );
     return { review, narrative };
   }
@@ -44,10 +48,12 @@ export class ReviewsService {
     userId: string,
   ): Promise<{ review: MonthlyReviewOutput; narrative: string }> {
     const review = await this.buildMonthlyReview(userId);
+    const currencyCtx = await this.currency.getUserContext(userId);
     const narrative = await this.groq.explain(
-      review,
+      this.withMonthlyNarrativeContext(review),
       "Write a concise monthly financial review summary for the user.",
       600,
+      currencyCtx.primaryCurrency,
     );
     return { review, narrative };
   }
@@ -180,6 +186,34 @@ export class ReviewsService {
       netCashFlow:
         output.cash.currentCashAvailable - engineInput.cycle.startingBalance,
     });
+  }
+
+  private withMonthlyNarrativeContext(review: MonthlyReviewOutput) {
+    const savingsRate =
+      review.income > 0 ? review.savings / review.income : 0;
+    return {
+      ...review,
+      savingsRate,
+      savingsRatePercent: Math.round(savingsRate * 100),
+    };
+  }
+
+  private withReviewNarrativeContext(review: WeeklyReviewOutput) {
+    return {
+      ...review,
+      savingsRatePercent: Math.round(review.savingsRate * 100),
+      savingsRateTargetPercent: Math.round(review.savingsRateTarget * 100),
+      vsLastWeek: {
+        ...review.vsLastWeek,
+        incomeChangePercentDisplay: review.vsLastWeek.incomeChangePercent,
+        spentChangePercentDisplay: review.vsLastWeek.spentChangePercent,
+      },
+      goalProgress: review.goalProgress.map((goal) => ({
+        ...goal,
+        progressEndPercent: goal.progressEnd,
+        progressDeltaPercent: goal.progressDelta,
+      })),
+    };
   }
 
   private async sendEmail(
