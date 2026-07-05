@@ -31,7 +31,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup("api/v1/docs", app, document);
 
-  const port = process.env.API_PORT ?? 4000;
+  const port = Number(process.env.PORT ?? process.env.API_PORT ?? 4000);
   await app.listen(port);
   console.log(`Nexa API running on http://localhost:${port}/api/v1`);
 }

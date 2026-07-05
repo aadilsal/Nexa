@@ -17,6 +17,7 @@ RUN pnpm --filter @nexa/shared build
 RUN pnpm --filter @nexa/finance-engine build
 RUN pnpm --filter @nexa/emails build
 RUN pnpm --filter @nexa/api exec prisma generate
+RUN pnpm --filter @nexa/api exec prisma generate --schema=prisma/analytics/schema.prisma
 RUN pnpm --filter @nexa/api build
 
 FROM node:24-alpine AS runner
@@ -27,4 +28,5 @@ COPY --from=build /app/apps/api/package.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/prisma ./prisma
 EXPOSE 4000
+ENV NODE_ENV=production
 CMD ["node", "dist/main.js"]
