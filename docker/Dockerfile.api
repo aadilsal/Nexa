@@ -11,7 +11,8 @@ COPY packages/emails/package.json ./packages/emails/
 RUN pnpm install --frozen-lockfile --filter @nexa/api...
 
 FROM base AS build
-COPY --from=deps /app/node_modules ./node_modules
+# Copy full install tree (root + package-level node_modules symlinks), then overlay source.
+COPY --from=deps /app ./
 COPY . .
 RUN pnpm --filter @nexa/shared build
 RUN pnpm --filter @nexa/finance-engine build
@@ -26,6 +27,12 @@ ENV NODE_ENV=production
 COPY --from=build /app/apps/api/dist ./dist
 COPY --from=build /app/apps/api/package.json ./
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/packages/shared/package.json ./packages/shared/package.json
+COPY --from=build /app/packages/shared/dist ./packages/shared/dist
+COPY --from=build /app/packages/finance-engine/package.json ./packages/finance-engine/package.json
+COPY --from=build /app/packages/finance-engine/dist ./packages/finance-engine/dist
+COPY --from=build /app/packages/emails/package.json ./packages/emails/package.json
+COPY --from=build /app/packages/emails/dist ./packages/emails/dist
 COPY --from=build /app/apps/api/prisma ./prisma
 EXPOSE 4000
 ENV NODE_ENV=production
