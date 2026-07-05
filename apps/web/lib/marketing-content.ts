@@ -11,19 +11,19 @@ export const QUICK_ANSWERS = [
   {
     question: "What is Nexa?",
     answer:
-      "Pakistan's AI-powered financial intelligence platform. It tells you what you can safely spend today — and whether a purchase fits your goals — without spreadsheets or bank linking.",
+      "An AI-powered financial intelligence platform. It tells you what you can safely spend today — and whether a purchase fits your goals — without spreadsheets or bank linking.",
     icon: Sparkles,
   },
   {
     question: "Why should I care?",
     answer:
-      "Stop guessing at the ATM. Nexa turns your income, bills, and goals into one daily number — Safe To Spend — so you can spend without guilt or surprise.",
+      "Stop guessing before you spend. Nexa turns your income, bills, and goals into one daily number — Safe To Spend — so you can spend without guilt or surprise.",
     icon: Brain,
   },
   {
     question: "Why is it different?",
     answer:
-      "Not an expense tracker. Nexa answers forward-looking questions — Can I buy this? Am I on track? — using PKR-native payday cycles built for how Pakistan actually earns and spends.",
+      "Not an expense tracker. Nexa answers forward-looking questions — Can I buy this? Am I on track? — using payday-to-payday cycles and support for 24+ currencies.",
     icon: Rocket,
   },
   {
@@ -35,7 +35,7 @@ export const QUICK_ANSWERS = [
   {
     question: "What's the first thing I should do?",
     answer:
-      "Create a free account, add your income and fixed expenses, and set one goal. Nexa will show your Safe To Spend within minutes.",
+      "Create a free account, pick your currency, add income and fixed expenses, and set one goal. Nexa will show your Safe To Spend within minutes.",
     icon: Shield,
     cta: { label: "Get started free", href: "/signup" },
   },
@@ -44,7 +44,7 @@ export const QUICK_ANSWERS = [
 export const TRUST_SIGNALS = [
   "Envelope encryption at rest",
   "No bank linking required",
-  "PKR-native payday cycles",
+  "24+ currencies with live rates",
   "Export or delete your data anytime",
   "Passkeys & magic-link sign-in",
 ] as const;
@@ -60,7 +60,7 @@ export const LANDING_FAQ = [
   },
   {
     q: "Who is Nexa built for?",
-    a: "Salaried professionals, freelancers, and anyone in Pakistan who wants confident daily money decisions in PKR.",
+    a: "Anyone who wants confident daily money decisions — salaried professionals, freelancers, and households worldwide.",
   },
   {
     q: "How does Safe To Spend work?",
@@ -92,7 +92,7 @@ export const FULL_FAQ = [
   },
   {
     q: "What currencies does Nexa support?",
-    a: "Nexa is built for Pakistani Rupees (PKR) with payday-to-payday cycles. Multi-currency support is on our roadmap.",
+    a: "Nexa supports 24+ currencies including USD, EUR, GBP, PKR, AED, INR, and more. Pick a primary currency during setup; mixed-currency income and expenses convert automatically using live exchange rates.",
   },
 ] as const;
 
@@ -113,6 +113,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Can I Buy This? purchase simulation",
       "AI financial coach with engine-grounded answers",
       "Goal planning with on-track signals",
+      "Multi-currency support with live exchange rates",
       "Five-second expense logging",
       "Passkeys and magic-link authentication",
       "Data export and account deletion",
@@ -144,6 +145,11 @@ export const ROADMAP: RoadmapItem[] = [
     status: "shipped",
   },
   {
+    title: "Multi-currency support",
+    description: "24+ currencies with live rates and a primary currency for your dashboard.",
+    status: "shipped",
+  },
+  {
     title: "AI financial coach",
     description: "Plain-language explanations grounded in your real numbers.",
     status: "shipped",
@@ -155,12 +161,12 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     title: "Mobile-optimized experience",
-    description: "Faster logging and dashboard tuned for phone-first usage in Pakistan.",
+    description: "Faster logging and dashboard tuned for phone-first usage.",
     status: "in-progress",
   },
   {
-    title: "Urdu language support",
-    description: "Full UI and AI coach responses in Urdu.",
+    title: "Additional languages",
+    description: "Full UI and AI coach responses beyond English.",
     status: "planned",
   },
   {
@@ -168,16 +174,11 @@ export const ROADMAP: RoadmapItem[] = [
     description: "Household budgeting with privacy-preserving shared visibility.",
     status: "planned",
   },
-  {
-    title: "Bill reminders",
-    description: "Gentle nudges for recurring commitments before they're due.",
-    status: "planned",
-  },
 ];
 
 export const SUPPORT_EMAIL = "support@nexa.app";
 
-export const COMPANY_LOCATION = "Karachi, Pakistan";
+export const COMPANY_LOCATION = "Global";
 
 export function getMarketingMeta(page: string) {
   return {

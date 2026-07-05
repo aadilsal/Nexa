@@ -1,6 +1,7 @@
 "use client";
 
 import { Label } from "./label";
+import { LabelWithInfo } from "./info-tip";
 import { cn } from "@/lib/utils";
 
 export function FormField({
@@ -8,19 +9,27 @@ export function FormField({
   htmlFor,
   error,
   hint,
+  info,
   className,
   children,
 }: {
-  label: string;
+  label: React.ReactNode;
   htmlFor: string;
   error?: string;
   hint?: string;
+  info?: string;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className={cn("space-y-2", className)}>
-      <Label htmlFor={htmlFor}>{label}</Label>
+      {info ? (
+        <LabelWithInfo htmlFor={htmlFor} info={info}>
+          {label}
+        </LabelWithInfo>
+      ) : (
+        <Label htmlFor={htmlFor}>{label}</Label>
+      )}
       {children}
       {hint && !error ? (
         <p className="text-xs text-muted-foreground">{hint}</p>

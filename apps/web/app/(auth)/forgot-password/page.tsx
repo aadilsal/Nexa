@@ -49,8 +49,7 @@ export default function ForgotPasswordPage() {
           <CardTitle>Check your email</CardTitle>
           <CardDescription>
             If an account exists for {getValues("email")}, you will receive a
-            reset link. Check the server console in dev — the link is logged
-            there too.
+            password reset link shortly.
           </CardDescription>
         </CardHeader>
         <CardContent>

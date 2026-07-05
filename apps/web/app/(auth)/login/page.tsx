@@ -118,8 +118,8 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <CardTitle>Check your email</CardTitle>
           <CardDescription>
-            Sign-in link sent to {getValues("email")}. In dev, check the server
-            console for the URL.
+            Sign-in link sent to {getValues("email")}. Click the link in your
+            email to sign in.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -10,6 +10,7 @@ import {
   Menu,
   MessageSquare,
   ShoppingBag,
+  Target,
   UserCircle,
 } from "lucide-react";
 import { NexaLogo } from "@/components/nexa-logo";
@@ -23,6 +24,7 @@ import { useAppRouter } from "@/lib/navigation";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/goals", label: "Goals", icon: Target },
   { href: "/can-i-buy", label: "Can I Buy?", icon: ShoppingBag },
   { href: "/weekly-review", label: "Weekly Review", icon: CalendarRange },
   { href: "/chat", label: "AI Coach", icon: MessageSquare },

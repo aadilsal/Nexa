@@ -111,12 +111,30 @@ export const AdjustRolloverSchema = z.object({
 
 export const UpdateGoalSchema = GoalInputSchema.partial();
 
+export const GoalFormSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(100, "Name must be 100 characters or less"),
+  targetAmount: z.coerce
+    .number({ invalid_type_error: "Enter a valid amount" })
+    .int("Amount must be a whole number")
+    .positive("Amount must be greater than zero"),
+  targetDate: z.string().min(1, "Target date is required"),
+  priority: GoalPrioritySchema,
+});
+
 export const UpdateFixedExpenseSchema = z.object({
   expectedAmount: z.number().int().nonnegative(),
 });
 
 export const UpdateIncomeExpectationSchema = z.object({
   expectedAmount: z.number().int().nonnegative(),
+});
+
+export const UpdateVariableEstimateSchema = z.object({
+  variableEstimate: z.number().int().nonnegative(),
 });
 
 export const PurchaseSimulationSchema = z.object({
@@ -349,6 +367,7 @@ export type CreateTransactionInput = z.infer<typeof CreateTransactionSchema>;
 export type OnboardingInput = z.infer<typeof OnboardingSchema>;
 export type OnboardingPreviewInput = z.infer<typeof OnboardingPreviewSchema>;
 export type GoalInput = z.infer<typeof GoalInputSchema>;
+export type GoalFormInput = z.infer<typeof GoalFormSchema>;
 export type PurchaseSimulationInput = z.infer<typeof PurchaseSimulationSchema>;
 export type PurchaseSimulationFormInput = z.infer<
   typeof PurchaseSimulationFormSchema

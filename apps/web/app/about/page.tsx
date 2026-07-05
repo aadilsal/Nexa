@@ -39,10 +39,11 @@ export default function AboutPage() {
         </Card>
 
         <Card className="p-6">
-          <CardTitle className="mb-2">Built for Pakistan 🇵🇰</CardTitle>
+          <CardTitle className="mb-2">Built for everyone</CardTitle>
           <CardDescription className="text-base leading-relaxed text-foreground">
-            PKR-native. Payday-to-payday cycles. No bank linking required. No
-            dependency on international fintech assumptions.
+            Multi-currency. Payday-to-payday cycles. No bank linking required.
+            Whether you earn in dollars, euros, or rupees — Nexa adapts to how
+            you actually manage money.
           </CardDescription>
         </Card>
       </div>

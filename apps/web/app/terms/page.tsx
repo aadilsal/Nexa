@@ -43,7 +43,7 @@ export default function TermsPage() {
       <ProseSection title="Eligibility">
         <p>
           You must be at least 18 years old and capable of entering a binding
-          agreement to use Nexa. The service is designed for users in Pakistan.
+          agreement to use Nexa. The service is available worldwide.
         </p>
       </ProseSection>
 
@@ -122,8 +122,9 @@ export default function TermsPage() {
 
       <ProseSection title="Governing law">
         <p>
-          These Terms are governed by the laws of Pakistan. Disputes shall be
-          subject to the exclusive jurisdiction of courts in Karachi, Pakistan.
+          These Terms are governed by the laws applicable in your jurisdiction.
+          Disputes shall be resolved through good-faith negotiation first, then
+          through appropriate courts if necessary.
         </p>
       </ProseSection>
 

@@ -8,6 +8,7 @@ import {
 } from "@nexa/finance-engine";
 import { sendNexaEmail } from "@nexa/emails";
 import { Resend } from "resend";
+import { DEFAULT_TIMEZONE } from "@nexa/shared";
 import { GroqService } from "../../common/groq/groq.service";
 import { CurrencyService } from "../../common/currency/currency.service";
 import { PrismaService } from "../../common/prisma/prisma.module";
@@ -100,7 +101,7 @@ export class ReviewsService {
       include: { settings: true },
     });
 
-    const timezone = user.settings?.timezone ?? "Asia/Karachi";
+    const timezone = user.settings?.timezone ?? DEFAULT_TIMEZONE;
     const { weekStart, weekEnd } = getCalendarWeekBounds(
       referenceDate,
       timezone,

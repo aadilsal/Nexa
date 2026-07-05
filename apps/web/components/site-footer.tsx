@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { MapPin } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 
 const FOOTER_LINKS = {
@@ -57,9 +56,8 @@ export function SiteFooter() {
           <div className="sm:col-span-2 lg:col-span-1">
             <p className="text-lg font-semibold text-foreground">{BRAND.name}</p>
             <p className="mt-2 text-sm text-muted-foreground">{BRAND.tagline.short}</p>
-            <p className="mt-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
-              Built in Pakistan 🇵🇰
+            <p className="mt-4 text-sm text-muted-foreground">
+              Available worldwide · 24+ currencies
             </p>
           </div>
           <FooterLinkGroup title="Product" links={FOOTER_LINKS.product} />

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { UpdateProfileSchema, UpdateUserSettingsSchema } from "@nexa/shared";
+import { UpdateProfileSchema, UpdateUserSettingsSchema, DEFAULT_CURRENCY, DEFAULT_TIMEZONE } from "@nexa/shared";
 import { PrismaService } from "../../common/prisma/prisma.module";
 import { UserEncryptionService } from "../../common/encryption/user-encryption.service";
 import { RedisService } from "../../common/redis/redis.service";
@@ -28,6 +28,13 @@ export class UsersService {
       this.prisma.goal.findMany({ where: { userId, isActive: true } }),
     ]);
 
+    const variableEstimate = user.encryptedVariableEstimate
+      ? await this.userEncryption.decryptNumberForUser(
+          userId,
+          user.encryptedVariableEstimate,
+        )
+      : null;
+
     return {
       user: {
         id: user.id,
@@ -41,10 +48,10 @@ export class UsersService {
         createdAt: user.createdAt,
       },
       settings: user.settings ?? {
-        timezone: "Asia/Karachi",
+        timezone: DEFAULT_TIMEZONE,
         weeklyReviewEmail: true,
         passkeyPromptDismissed: false,
-        primaryCurrency: "PKR",
+        primaryCurrency: DEFAULT_CURRENCY,
       },
       passkeys: user.passkeys,
       pendingDeletion: user.accountDeletion
@@ -53,6 +60,7 @@ export class UsersService {
             requestedAt: user.accountDeletion.requestedAt,
           }
         : null,
+      variableEstimate,
       fixedExpenses: await Promise.all(
         fixedExpenses.map(async (e) => ({
           id: e.id,

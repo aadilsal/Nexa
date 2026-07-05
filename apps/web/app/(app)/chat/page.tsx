@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { track } from "@nexa/analytics/react";
+import { FEATURE_HELP } from "@/lib/feature-help";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -67,7 +68,7 @@ export default function ChatPage() {
     <>
       <h1 className="mb-2 text-2xl font-bold">Financial Chat</h1>
       <p className="mb-6 text-sm text-muted-foreground">
-        Ask about your finances. Grounded in your engine data — read-only.
+        {FEATURE_HELP.aiCoach}
       </p>
 
       <Card className="mb-4 flex-1 overflow-y-auto p-4">

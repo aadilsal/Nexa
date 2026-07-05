@@ -1,11 +1,13 @@
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { LabelWithInfo } from "@/components/ui/info-tip";
 
 interface StatCardProps {
   label: string;
   value: React.ReactNode;
   hint?: string;
+  info?: string;
   icon?: LucideIcon;
   trend?: { value: string; positive?: boolean };
   className?: string;
@@ -15,6 +17,7 @@ export function StatCard({
   label,
   value,
   hint,
+  info,
   icon: Icon,
   trend,
   className,
@@ -23,7 +26,13 @@ export function StatCard({
     <Card className={cn("overflow-hidden", className)}>
       <CardContent className="p-6">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          {info ? (
+            <LabelWithInfo info={info} className="text-muted-foreground">
+              {label}
+            </LabelWithInfo>
+          ) : (
+            <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          )}
           {Icon ? (
             <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           ) : null}

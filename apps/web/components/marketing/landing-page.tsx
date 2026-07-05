@@ -7,7 +7,6 @@ import {
   Brain,
   CheckCircle2,
   Lock,
-  MapPin,
   Shield,
   Sparkles,
   Target,
@@ -106,7 +105,7 @@ export function LandingPage() {
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground sm:text-xl">
               {BRAND.tagline.primary} Not a spreadsheet. Not a bank app. Just
-              clear answers about your money — in PKR.
+              clear answers about your money — in your currency.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link href="/signup">
@@ -121,10 +120,6 @@ export function LandingPage() {
                 </Button>
               </Link>
             </div>
-            <p className="mt-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
-              Built in Pakistan 🇵🇰
-            </p>
           </motion.div>
 
           <motion.div
@@ -304,8 +299,8 @@ export function LandingPage() {
             </h2>
             <p className="mt-4 leading-relaxed text-muted-foreground">
               Encrypted data. No bank linking. No browsing your salary or goals
-              unless you explicitly share a support snapshot. Built for Pakistan
-              with PKR-native cycles and local financial reality in mind.
+              unless you explicitly share a support snapshot. Built for anyone,
+              anywhere — with 24+ currencies and payday-to-payday cycles.
             </p>
             <Link href="/security" className="mt-6 inline-block">
               <Button variant="outline" className="rounded-full">
@@ -397,7 +392,7 @@ export function LandingPage() {
             </Button>
           </Link>
           <p className="mt-4 text-xs text-muted-foreground">
-            Free during early access · No bank linking · Built in Pakistan 🇵🇰
+            Free during early access · No bank linking · 24+ currencies
           </p>
         </div>
       </Section>

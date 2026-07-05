@@ -9,6 +9,7 @@ import {
   IncomeExpectationInputSchema,
   OnboardingSchema,
   formatMoney,
+  guessCurrencyFromLocale,
   type Category,
   type CurrencyCode,
 } from "@nexa/shared";
@@ -18,9 +19,11 @@ import { CategorySelect } from "@/components/category-select";
 import { CurrencySelect } from "@/components/currency-select";
 import { DayOfMonthSelect } from "@/components/day-of-month-select";
 import { ContentSection } from "@/components/layouts/surface";
+import { HighlightSurface } from "@/components/layouts/surface/highlight-surface";
 import { FormField } from "@/components/ui/form-field";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api";
+import { FEATURE_HELP } from "@/lib/feature-help";
 import { useAppRouter } from "@/lib/navigation";
 import { markOnboardingComplete } from "@/lib/onboarding";
 import { prefetchAppData } from "@/lib/prefetch-app-data";
@@ -79,18 +82,35 @@ export default function OnboardingPage() {
   const [preferredCycleStart, setPreferredCycleStart] = useState(1);
   const [isFreelancer, setIsFreelancer] = useState(false);
   const [startingBalance, setStartingBalance] = useState(0);
-  const [variableEstimate, setVariableEstimate] = useState(30000);
+  const [variableEstimate, setVariableEstimate] = useState(1500);
   const [primaryCurrency, setPrimaryCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
 
   const [incomes, setIncomes] = useState<IncomeRow[]>([
-    { name: "Salary", expectedAmount: 120000, currency: "PKR" },
+    { name: "Salary", expectedAmount: 5000, currency: DEFAULT_CURRENCY },
   ]);
 
   const [expenses, setExpenses] = useState<FixedExpenseRow[]>([
-    { name: "Rent", category: "HOUSING", expectedAmount: 25000, currency: "PKR" },
-    { name: "Fuel", category: "FUEL", expectedAmount: 10000, currency: "PKR" },
-    { name: "Internet", category: "UTILITIES", expectedAmount: 5000, currency: "PKR" },
+    { name: "Rent", category: "HOUSING", expectedAmount: 1500, currency: DEFAULT_CURRENCY },
+    { name: "Utilities", category: "UTILITIES", expectedAmount: 200, currency: DEFAULT_CURRENCY },
+    { name: "Transport", category: "TRANSPORT", expectedAmount: 300, currency: DEFAULT_CURRENCY },
   ]);
+
+  useEffect(() => {
+    const detected = guessCurrencyFromLocale(navigator.language);
+    setPrimaryCurrency(detected);
+    setIncomes([{ name: "Salary", expectedAmount: 5000, currency: detected }]);
+    setExpenses([
+      { name: "Rent", category: "HOUSING", expectedAmount: 1500, currency: detected },
+      { name: "Utilities", category: "UTILITIES", expectedAmount: 200, currency: detected },
+      { name: "Transport", category: "TRANSPORT", expectedAmount: 300, currency: detected },
+    ]);
+  }, []);
+
+  function handlePrimaryCurrencyChange(currency: CurrencyCode) {
+    setPrimaryCurrency(currency);
+    setIncomes((prev) => prev.map((row) => ({ ...row, currency })));
+    setExpenses((prev) => prev.map((row) => ({ ...row, currency })));
+  }
 
   const [predictedMonthly, setPredictedMonthly] = useState(0);
   const [emergencyTarget, setEmergencyTarget] = useState(0);
@@ -245,7 +265,8 @@ export default function OnboardingPage() {
               Set up your finances
             </h1>
             <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-              A few details so Nexa can calculate Safe to Spend and your goals.
+              Pick your currency, add income and bills — Nexa handles the rest.
+              You can change currency anytime in Profile.
             </p>
           </div>
         </header>
@@ -261,6 +282,24 @@ export default function OnboardingPage() {
             className="border-t-0 pt-0"
           >
             <div className="space-y-8">
+              <HighlightSurface variant="primary">
+                <FormField
+                  label="Primary currency"
+                  htmlFor="primaryCurrency"
+                  info={FEATURE_HELP.primaryCurrency}
+                >
+                  <CurrencySelect
+                    id="primaryCurrency"
+                    value={primaryCurrency}
+                    onChange={handlePrimaryCurrencyChange}
+                  />
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Dashboard totals and Safe To Spend display in this currency.
+                    Income and expenses in other currencies convert automatically.
+                  </p>
+                </FormField>
+              </HighlightSurface>
+
               <div className="inline-flex rounded-xl bg-muted/50 p-1">
                 <Button
                   type="button"
@@ -287,6 +326,7 @@ export default function OnboardingPage() {
                   label="Primary payday"
                   htmlFor="primaryPayday"
                   hint="Day of the month you get paid"
+                  info={FEATURE_HELP.payday}
                 >
                   <DayOfMonthSelect
                     id="primaryPayday"
@@ -299,6 +339,7 @@ export default function OnboardingPage() {
                   label="Cycle start day"
                   htmlFor="preferredCycleStart"
                   hint="Day of the month your cycle begins"
+                  info={FEATURE_HELP.cycleStart}
                 >
                   <DayOfMonthSelect
                     id="preferredCycleStart"
@@ -308,22 +349,11 @@ export default function OnboardingPage() {
                 </FormField>
               )}
 
-              <FormField label="Primary currency" htmlFor="primaryCurrency">
-                <CurrencySelect
-                  id="primaryCurrency"
-                  value={primaryCurrency}
-                  onChange={setPrimaryCurrency}
-                />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Totals and Safe To Spend use live exchange rates — pick the
-                  currency you think in.
-                </p>
-              </FormField>
-
               <Separator />
 
               <div className="space-y-4">
                 <p className="text-sm font-medium">Income sources</p>
+                <p className="text-xs text-muted-foreground">{FEATURE_HELP.incomeSource}</p>
                 <div className="space-y-3">
                   {incomes.map((income, i) => (
                     <div
@@ -425,6 +455,7 @@ export default function OnboardingPage() {
             <div className="space-y-8">
               <div className="space-y-4">
                 <p className="text-sm font-medium">Fixed expenses</p>
+                <p className="text-xs text-muted-foreground">{FEATURE_HELP.fixedExpense}</p>
                 <div className="space-y-3">
                   {expenses.map((expense, i) => (
                     <div
@@ -523,6 +554,7 @@ export default function OnboardingPage() {
                 label="Average variable spending per month"
                 htmlFor="variableEstimate"
                 hint="Food, shopping, entertainment, dining, miscellaneous"
+                info={FEATURE_HELP.variableSpending}
               >
                 <Input
                   id="variableEstimate"
@@ -592,14 +624,15 @@ export default function OnboardingPage() {
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  3 months of expenses — you can adjust this later.
+                  {FEATURE_HELP.emergencyFund}
                 </p>
               </div>
 
               <FormField
                 label="Starting balance (optional)"
                 htmlFor="startingBalance"
-                hint="Cash you have available right now — this becomes your current cash on the dashboard"
+                hint="Cash you have available right now"
+                info={FEATURE_HELP.startingBalance}
               >
                 <Input
                   id="startingBalance"

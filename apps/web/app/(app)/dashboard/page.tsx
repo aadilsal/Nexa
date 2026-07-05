@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageHeader } from "@/components/widgets/page-header";
 import { StatCard } from "@/components/widgets/stat-card";
 import { SafeToSpendCard } from "@/components/widgets/safe-to-spend-card";
+import { buildSafeToSpendExplanation } from "@/lib/safe-to-spend-explanation";
 import {
   HealthScoreCard,
   InsightCard,
@@ -32,6 +33,7 @@ import { hasLocalAuthSession, useSession } from "@/lib/auth-client";
 import { track } from "@nexa/analytics/react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/lib/currency";
+import { FEATURE_HELP } from "@/lib/feature-help";
 import type { CurrencyCode } from "@nexa/shared";
 
 const CanIBuyThis = dynamic(
@@ -77,6 +79,13 @@ interface DashboardData {
   };
   healthScore: {
     overall: number;
+    breakdown: {
+      savingsRate: number;
+      emergencyFund: number;
+      goalProgress: number;
+      spendingConsistency: number;
+      incomeStability: number;
+    };
   };
   savings: {
     actualRate: number;
@@ -89,6 +98,7 @@ interface DashboardData {
     progress: number;
     targetAmount: number;
     isEmergencyFund: boolean;
+    requiredMonthlySavings?: number;
     eta: string;
     onTrack: boolean;
   }>;
@@ -250,8 +260,14 @@ export default function DashboardPage() {
           trendMultiplier={dashboard?.safeToSpend.trendMultiplier}
           daysRemaining={dashboard?.cycle.daysRemaining}
           breakdown={dashboard?.safeToSpend.breakdown}
+          explanation={
+            dashboard ? buildSafeToSpendExplanation(dashboard) : undefined
+          }
         />
-        <HealthScoreCard score={dashboard?.healthScore.overall ?? 0} />
+        <HealthScoreCard
+          score={dashboard?.healthScore.overall ?? 0}
+          breakdown={dashboard?.healthScore.breakdown}
+        />
       </div>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -259,27 +275,32 @@ export default function DashboardPage() {
           label="Current cash"
           value={formatAmount(dashboard?.cash.currentCashAvailable ?? 0)}
           icon={TrendingUp}
+          info={FEATURE_HELP.currentCash}
         />
         <StatCard
           label="Income this cycle"
           value={formatAmount(dashboard?.cash.totalIncome ?? 0)}
+          info={FEATURE_HELP.incomeCycle}
         />
         <StatCard
           label="Spent"
           value={formatAmount(dashboard?.cash.totalExpenses ?? 0)}
+          info={FEATURE_HELP.spentCycle}
         />
         <StatCard
           label="Projected savings"
           value={formatAmount(dashboard?.savings.projectedSavings ?? 0)}
           hint={`${Math.round((dashboard?.savings.actualRate ?? 0) * 100)}% actual · ${Math.round((dashboard?.savings.targetRate ?? 0) * 100)}% target`}
+          info={FEATURE_HELP.projectedSavings}
         />
       </div>
 
       {emergencyGoal ? (
         <ContentSection
           title="Emergency fund"
+          info={FEATURE_HELP.emergencyFund}
           className="mb-8 border-t-0 pt-0"
-          description={`Target ${formatAmount(emergencyGoal.targetAmount)} · ETA ${new Date(emergencyGoal.eta).toLocaleDateString("en-PK", { month: "long", year: "numeric" })}`}
+          description={`Target ${formatAmount(emergencyGoal.targetAmount)} · ETA ${new Date(emergencyGoal.eta).toLocaleDateString(undefined, { month: "long", year: "numeric" })}`}
         >
           <div className="mb-3 flex items-center justify-between gap-2">
             <span className="text-sm font-medium">{emergencyGoal.progress}% complete</span>
@@ -294,6 +315,7 @@ export default function DashboardPage() {
       <ContentSection
         title="Quick log"
         description="Log an expense in seconds — your data powers Safe To Spend."
+        info={FEATURE_HELP.transactionLog}
         className="mb-8 border-t-0 pt-0"
       >
         <TransactionLogger />
@@ -303,39 +325,51 @@ export default function DashboardPage() {
         <ContentSection
           title="Goals"
           icon={<Target className="h-4 w-4 text-primary" aria-hidden="true" />}
+          info={FEATURE_HELP.goalProgress}
           className="border-t-0 pt-0"
         >
           {!dashboard?.goals.length ? (
             <EmptyState
               icon={Target}
               title="No goals yet"
-              description="Set a goal during onboarding or in your profile to track progress here."
-              actionLabel="Go to profile"
-              actionHref="/profile"
+              description="Add goals to track savings progress, ETAs, and on-track signals."
+              actionLabel="Manage goals"
+              actionHref="/goals"
             />
           ) : (
-            <div className="divide-y divide-border/50">
-              {dashboard.goals.map((goal) => (
-                <div key={goal.id} className="py-4 first:pt-0 last:pb-0">
-                  <div className="mb-2 flex items-center justify-between gap-2 text-sm">
-                    <span className="font-medium">{goal.name}</span>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={goal.onTrack ? "success" : "warning"}
-                        className="text-[10px]"
-                      >
-                        {goal.onTrack ? "On track" : "Delayed"}
-                      </Badge>
-                      <span className="tabular-nums">{goal.progress}%</span>
+            <>
+              <div className="divide-y divide-border/50">
+                {dashboard.goals.map((goal) => (
+                  <Link
+                    key={goal.id}
+                    href="/goals"
+                    className="block py-4 first:pt-0 last:pb-0 transition-colors hover:bg-muted/20"
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2 text-sm">
+                      <span className="font-medium">{goal.name}</span>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={goal.onTrack ? "success" : "warning"}
+                          className="text-[10px]"
+                        >
+                          {goal.onTrack ? "On track" : "Delayed"}
+                        </Badge>
+                        <span className="tabular-nums">{goal.progress}%</span>
+                      </div>
                     </div>
-                  </div>
-                  <Progress value={goal.progress} />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatAmount(goal.targetAmount)}
-                  </p>
-                </div>
-              ))}
-            </div>
+                    <Progress value={goal.progress} />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatAmount(goal.targetAmount)}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+              <div className="mt-4">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/goals">Manage goals</Link>
+                </Button>
+              </div>
+            </>
           )}
         </ContentSection>
 

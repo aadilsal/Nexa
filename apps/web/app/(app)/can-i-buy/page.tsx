@@ -27,6 +27,7 @@ import {
 } from "@/components/layouts/surface";
 import { api } from "@/lib/api";
 import { useCurrency } from "@/lib/currency";
+import { FEATURE_HELP } from "@/lib/feature-help";
 import { track } from "@nexa/analytics/react";
 import { cn } from "@/lib/utils";
 
@@ -84,6 +85,7 @@ export default function CanIBuyPage() {
       description="Simulate a purchase and see how it affects your goals and savings rate."
       className="max-w-2xl pb-8"
     >
+      <p className="mb-6 text-sm text-muted-foreground">{FEATURE_HELP.canIBuy}</p>
       <ContentSection
         title="Purchase details"
         description="Enter what you're considering — we'll run the numbers."

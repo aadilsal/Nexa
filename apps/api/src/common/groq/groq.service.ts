@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { DEFAULT_CURRENCY, type CurrencyCode } from "@nexa/shared";
+import { DEFAULT_CURRENCY, formatMoney, type CurrencyCode } from "@nexa/shared";
 import {
   buildDeterministicNarrative,
   enrichNarrativeData,
@@ -7,8 +7,9 @@ import {
   formatRatePercent,
 } from "./narrative-context";
 
-const EXPLAINER_SYSTEM_PROMPT = `You are Nexa's financial assistant for users in Pakistan.
+const EXPLAINER_SYSTEM_PROMPT = `You are Nexa's financial assistant.
 Explain the provided calculated financial data in clear, encouraging language.
+Use the user's currency from the data when citing amounts.
 Never invent numbers. Only reference values from displayValues in the JSON — copy those strings exactly when citing amounts, rates, or dates.
 Never use placeholders like [amount], [date], or [percent].
 Be concise, actionable, and supportive.`;
@@ -162,7 +163,9 @@ export class GroqService {
     const health = (record?.healthScore as { overall?: number })?.overall;
 
     if (sts != null && health != null) {
-      return `You're in good shape today. Safe To Spend is PKR ${sts.toLocaleString("en-PK")} and your financial health score is ${health}/100.`;
+      const currency =
+        ((record?.currency as CurrencyCode | undefined) ?? DEFAULT_CURRENCY);
+      return `You're in good shape today. Safe To Spend is ${formatMoney(sts, currency)} and your financial health score is ${health}/100.`;
     }
 
     return "Keep logging expenses to unlock personalized insights.";

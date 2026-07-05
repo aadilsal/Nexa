@@ -14,6 +14,7 @@ import {
   type CurrencyCode,
   DEFAULT_TIMEZONE,
   isSupportedTimezone,
+  DEFAULT_CURRENCY,
 } from "@nexa/shared";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import {
 } from "@/components/layouts/surface";
 import { api } from "@/lib/api";
 import { sendVerificationEmail } from "@/lib/auth-client";
+import { FEATURE_HELP } from "@/lib/feature-help";
 
 interface Profile {
   user: {
@@ -92,7 +94,7 @@ export default function ProfilePage() {
     resolver: zodResolver(ProfileCurrencyFormSchema),
     mode: "onBlur",
     defaultValues: {
-      primaryCurrency: "PKR",
+      primaryCurrency: DEFAULT_CURRENCY,
     },
   });
 
@@ -107,7 +109,7 @@ export default function ProfilePage() {
           : DEFAULT_TIMEZONE,
       });
       resetCurrency({
-        primaryCurrency: profile.settings.primaryCurrency ?? "PKR",
+        primaryCurrency: profile.settings.primaryCurrency ?? DEFAULT_CURRENCY,
       });
     }
   }, [profile, resetName, resetTimezone, resetCurrency]);
@@ -199,15 +201,26 @@ export default function ProfilePage() {
                     email: profile.user.email,
                     callbackURL: "/profile",
                   });
-                  toast.success(
-                    "Verification email sent — check console in dev",
-                  );
+                  toast.success("Verification email sent — check your inbox.");
                 }}
               >
                 Resend verification email
               </Button>
             ) : null}
           </SettingsRow>
+        </SettingsGroup>
+
+        <SettingsGroup label="Financial plan">
+          <SettingsLinkRow
+            href="/profile/plan"
+            title="Bills & income"
+            description="Update fixed bills, expected income, and variable spending"
+          />
+          <SettingsLinkRow
+            href="/goals"
+            title="Goals"
+            description="Savings targets and emergency fund"
+          />
         </SettingsGroup>
 
         <SettingsGroup label="Preferences">
@@ -223,6 +236,7 @@ export default function ProfilePage() {
                 label="Timezone"
                 htmlFor="timezone"
                 error={timezoneErrors.timezone?.message}
+                info={FEATURE_HELP.timezone}
               >
                 <input type="hidden" {...registerTimezone("timezone")} />
                 <div className="flex gap-2">
@@ -250,7 +264,11 @@ export default function ProfilePage() {
               noValidate
               className="space-y-3"
             >
-              <FormField label="Primary currency" htmlFor="profile-currency">
+              <FormField
+                label="Primary currency"
+                htmlFor="profile-currency"
+                info={FEATURE_HELP.primaryCurrency}
+              >
                 <input type="hidden" {...registerCurrency("primaryCurrency")} />
                 <div className="flex gap-2">
                   <CurrencySelect

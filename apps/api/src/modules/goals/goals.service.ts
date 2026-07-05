@@ -4,6 +4,7 @@ import type { GoalInput } from "@nexa/shared";
 import { PrismaService } from "../../common/prisma/prisma.module";
 import { UserEncryptionService } from "../../common/encryption/user-encryption.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { EngineDataService } from "../engine/engine-data.service";
 
 @Injectable()
 export class GoalsService {
@@ -11,6 +12,7 @@ export class GoalsService {
     private readonly prisma: PrismaService,
     private readonly userEncryption: UserEncryptionService,
     private readonly audit: AuditService,
+    private readonly engineData: EngineDataService,
   ) {}
 
   async list(userId: string) {
@@ -66,6 +68,7 @@ export class GoalsService {
     });
 
     await this.audit.log(userId, "GOAL_CREATE", { goalId: goal.id });
+    await this.engineData.invalidateUserCache(userId);
 
     return { id: goal.id, name: goal.name };
   }
@@ -96,6 +99,7 @@ export class GoalsService {
     });
 
     await this.audit.log(userId, "GOAL_UPDATE", { goalId });
+    await this.engineData.invalidateUserCache(userId);
 
     return { id: updated.id };
   }
@@ -113,6 +117,7 @@ export class GoalsService {
     });
 
     await this.audit.log(userId, "GOAL_DELETE", { goalId });
+    await this.engineData.invalidateUserCache(userId);
 
     return { success: true };
   }

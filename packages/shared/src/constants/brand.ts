@@ -9,5 +9,5 @@ export const BRAND = {
     marketing: "Can I afford this? Nexa knows.",
   },
   description:
-    "Pakistan's AI-powered financial intelligence platform.",
+    "AI-powered financial intelligence for confident daily money decisions.",
 } as const;

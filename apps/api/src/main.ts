@@ -52,7 +52,7 @@ async function bootstrap() {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle("Nexa API")
-    .setDescription("Know what you can spend. Stay on track. — Pakistan's AI-powered financial intelligence platform.")
+    .setDescription("Know what you can spend. Stay on track. — AI-powered financial intelligence.")
     .setVersion("1.0")
     .addCookieAuth("better-auth.session_token")
     .build();

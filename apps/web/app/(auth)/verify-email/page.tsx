@@ -13,8 +13,8 @@ export default function VerifyEmailPage() {
       <Card className="w-full max-w-md text-center">
         <CardTitle className="mb-2">Verify your email</CardTitle>
         <CardDescription className="mb-6">
-          We sent a verification link to your inbox. On localhost, the link is
-          also printed in your Next.js server console.
+          We sent a verification link to your inbox. Click it to verify your
+          account and continue.
         </CardDescription>
         <Button
           variant="outline"

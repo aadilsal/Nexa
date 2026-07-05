@@ -26,6 +26,7 @@ import { HealthModule } from "./modules/health/health.module";
 import { RateLimitModule } from "./common/rate-limit/rate-limit.module";
 import { CurrencyModule } from "./common/currency/currency.module";
 import { CurrenciesModule } from "./modules/currencies/currencies.module";
+import { FinancialPlanModule } from "./modules/financial-plan/financial-plan.module";
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { CurrenciesModule } from "./modules/currencies/currencies.module";
     RateLimitModule,
     CurrencyModule,
     CurrenciesModule,
+    FinancialPlanModule,
     EncryptionModule,
     AuditModule,
     RedisModule,

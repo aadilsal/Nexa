@@ -10,7 +10,9 @@ import {
 } from "@/components/layouts/surface";
 import { api } from "@/lib/api";
 import { track } from "@nexa/analytics/react";
-import { cn, formatPKR } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useCurrency } from "@/lib/currency";
+import { FEATURE_HELP } from "@/lib/feature-help";
 
 interface WeeklyReviewData {
   review: {
@@ -36,6 +38,7 @@ interface WeeklyReviewData {
 }
 
 export default function WeeklyReviewPage() {
+  const { formatAmount } = useCurrency();
   const { data, isLoading } = useQuery({
     queryKey: ["weekly-review"],
     queryFn: () => api<WeeklyReviewData>("/reviews/weekly"),
@@ -64,8 +67,8 @@ export default function WeeklyReviewPage() {
         >
           <header className="space-y-3">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {new Date(data.review.weekStart).toLocaleDateString("en-PK")} –{" "}
-              {new Date(data.review.weekEnd).toLocaleDateString("en-PK")}
+              {new Date(data.review.weekStart).toLocaleDateString()} –{" "}
+              {new Date(data.review.weekEnd).toLocaleDateString()}
             </p>
             <h2 className="text-2xl font-semibold capitalize tracking-tight">
               {data.review.overallRating.replace(/_/g, " ").toLowerCase()} week
@@ -77,11 +80,11 @@ export default function WeeklyReviewPage() {
 
           <StatStrip
             items={[
-              { label: "Income", value: formatPKR(data.review.income) },
-              { label: "Spent", value: formatPKR(data.review.spent) },
+              { label: "Income", value: formatAmount(data.review.income) },
+              { label: "Spent", value: formatAmount(data.review.spent) },
               {
                 label: "Saved",
-                value: formatPKR(data.review.saved),
+                value: formatAmount(data.review.saved),
                 valueClassName: cn(
                   data.review.saved >= 0 ? "text-primary" : "text-destructive",
                 ),
@@ -96,7 +99,7 @@ export default function WeeklyReviewPage() {
                   <span className="text-muted-foreground">Highest</span>
                   <span>
                     {data.review.highestSpendingCategory.category} ·{" "}
-                    {formatPKR(data.review.highestSpendingCategory.amount)}
+                    {formatAmount(data.review.highestSpendingCategory.amount)}
                   </span>
                 </li>
                 {data.review.lowestSpendingCategory ? (
@@ -104,7 +107,7 @@ export default function WeeklyReviewPage() {
                     <span className="text-muted-foreground">Lowest</span>
                     <span>
                       {data.review.lowestSpendingCategory.category} ·{" "}
-                      {formatPKR(data.review.lowestSpendingCategory.amount)}
+                      {formatAmount(data.review.lowestSpendingCategory.amount)}
                     </span>
                   </li>
                 ) : null}
@@ -113,7 +116,7 @@ export default function WeeklyReviewPage() {
           ) : null}
 
           {data.review.goalProgress.length > 0 ? (
-            <ContentSection title="Goal progress">
+            <ContentSection title="Goal progress" info={FEATURE_HELP.goalProgress}>
               <ul className="divide-y divide-border/50">
                 {data.review.goalProgress.map((goal) => (
                   <li

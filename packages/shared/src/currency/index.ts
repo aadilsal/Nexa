@@ -2,10 +2,10 @@ import { z } from "zod";
 
 /** Currencies available in the app (rates fetched live from USD hub). */
 export const SUPPORTED_CURRENCIES = [
-  "PKR",
   "USD",
   "EUR",
   "GBP",
+  "PKR",
   "AED",
   "SAR",
   "CAD",
@@ -32,7 +32,7 @@ export type CurrencyCode = (typeof SUPPORTED_CURRENCIES)[number];
 
 export const CurrencySchema = z.enum(SUPPORTED_CURRENCIES);
 
-export const DEFAULT_CURRENCY: CurrencyCode = "PKR";
+export const DEFAULT_CURRENCY: CurrencyCode = "USD";
 
 export const EXCHANGE_RATE_BASE = "USD" as const;
 
@@ -102,3 +102,47 @@ export const CURRENCY_LABELS: Record<CurrencyCode, string> = {
   NOK: "Norwegian Krone",
   DKK: "Danish Krone",
 };
+
+const LOCALE_CURRENCY_MAP: Record<string, CurrencyCode> = {
+  US: "USD",
+  GB: "GBP",
+  PK: "PKR",
+  AE: "AED",
+  SA: "SAR",
+  CA: "CAD",
+  AU: "AUD",
+  IN: "INR",
+  CN: "CNY",
+  JP: "JPY",
+  CH: "CHF",
+  SG: "SGD",
+  MY: "MYR",
+  TR: "TRY",
+  QA: "QAR",
+  KW: "KWD",
+  BH: "BHD",
+  OM: "OMR",
+  NZ: "NZD",
+  HK: "HKD",
+  SE: "SEK",
+  NO: "NOK",
+  DK: "DKK",
+  DE: "EUR",
+  FR: "EUR",
+  IT: "EUR",
+  ES: "EUR",
+  NL: "EUR",
+};
+
+/** Guess a sensible default currency from a BCP-47 locale (e.g. en-US). */
+export function guessCurrencyFromLocale(locale?: string): CurrencyCode {
+  if (!locale) return DEFAULT_CURRENCY;
+
+  const parts = locale.replace("_", "-").split("-");
+  const region = parts[1]?.toUpperCase();
+  if (region && LOCALE_CURRENCY_MAP[region]) {
+    return LOCALE_CURRENCY_MAP[region];
+  }
+
+  return DEFAULT_CURRENCY;
+}
