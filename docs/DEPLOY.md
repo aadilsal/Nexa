@@ -137,7 +137,28 @@ Update `cron.yml` API URL if not using a custom domain.
 
 ## 7. Custom domain (optional)
 
-- **Vercel:** add `app.yourdomain.com` → update `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `CORS_ORIGIN`, `PASSKEY_RP_ID`
+When using a custom domain (e.g. `www.nexafin.xyz` on Vercel):
+
+**Vercel** — set all web URLs to your **canonical** hostname (the one users land on):
+
+| Variable | Example |
+|----------|---------|
+| `BETTER_AUTH_URL` | `https://www.nexafin.xyz` |
+| `NEXT_PUBLIC_APP_URL` | `https://www.nexafin.xyz` |
+| `PASSKEY_RP_ID` | `nexafin.xyz` (apex, no `https://` or `www`) |
+
+Code auto-expands `www` ↔ apex and includes the Vercel deployment URL in trusted origins. If signup still shows **Invalid origin**, redeploy after setting the vars above.
+
+**Render** — allow the web app origin(s):
+
+```
+CORS_ORIGIN=https://www.nexafin.xyz
+```
+
+(apex `https://nexafin.xyz` is added automatically if you list the www URL)
+
+**GitHub Actions** — update `NEXT_PUBLIC_APP_URL` secret to match.
+
 - **Render:** add `api.yourdomain.com` → update `NEXT_PUBLIC_API_URL`
 
 ---

@@ -4,8 +4,12 @@ import { bearer, magicLink } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { PrismaClient } from "@prisma/client";
 import { sendAuthEmail, appUrl } from "./email";
+import { getPrimaryAppOrigin, getTrustedOrigins } from "./trusted-origins";
 
 const prisma = new PrismaClient();
+
+const trustedOrigins = getTrustedOrigins();
+const primaryAppOrigin = getPrimaryAppOrigin();
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
@@ -65,16 +69,14 @@ export const auth = betterAuth({
     passkey({
       rpName: "Nexa",
       rpID: process.env.PASSKEY_RP_ID ?? "localhost",
-      origin: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+      origin: primaryAppOrigin,
     }),
   ],
-  trustedOrigins: [
-    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-  ],
+  trustedOrigins,
   secret:
     process.env.BETTER_AUTH_SECRET ??
     "nexa-dev-secret-change-in-production-min-32-chars",
-  baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+  baseURL: primaryAppOrigin,
 });
 
 export type Session = typeof auth.$Infer.Session;
