@@ -19,6 +19,7 @@ describe("parseTransactionInput", () => {
       category: "FUEL",
       type: "EXPENSE",
       confidence: 0.9,
+      currency: "PKR",
     });
   });
 
@@ -30,6 +31,7 @@ describe("parseTransactionInput", () => {
       category: "INCOME",
       type: "INCOME",
       confidence: 0.95,
+      currency: "PKR",
     });
   });
 
