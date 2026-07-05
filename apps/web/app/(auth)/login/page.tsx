@@ -29,6 +29,7 @@ export default function LoginPage() {
   const queryClient = useQueryClient();
   const [error, setError] = useState("");
   const [magicSent, setMagicSent] = useState(false);
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
 
   const {
@@ -72,11 +73,22 @@ export default function LoginPage() {
       return;
     }
     setError("");
-    await authClient.signIn.magicLink({
-      email: parsed.data.email,
-      callbackURL: "/dashboard",
-    });
-    setMagicSent(true);
+    setMagicLinkLoading(true);
+    try {
+      const result = await authClient.signIn.magicLink({
+        email: parsed.data.email,
+        callbackURL: "/dashboard",
+      });
+      if (result.error) {
+        setError(result.error.message ?? "Could not send sign-in link");
+        return;
+      }
+      setMagicSent(true);
+    } catch {
+      setError("Could not send sign-in link. Please try again.");
+    } finally {
+      setMagicLinkLoading(false);
+    }
   }
 
   async function handlePasskey() {
@@ -174,7 +186,8 @@ export default function LoginPage() {
             variant="outline"
             className="w-full"
             type="button"
-            disabled={isSubmitting || passkeyLoading}
+            loading={passkeyLoading}
+            disabled={isSubmitting || magicLinkLoading}
             onClick={handlePasskey}
           >
             Sign in with passkey
@@ -183,6 +196,7 @@ export default function LoginPage() {
             variant="outline"
             className="w-full"
             type="button"
+            loading={magicLinkLoading}
             disabled={isSubmitting || passkeyLoading}
             onClick={handleMagicLink}
           >

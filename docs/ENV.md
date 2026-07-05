@@ -50,7 +50,8 @@ PostHog is **not** used. Events flow through `@nexa/analytics` → `POST /api/v1
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `API_PORT` | `4000` | NestJS listen port |
-| `CORS_ORIGIN` | `http://localhost:3000` | Allowed browser origin for API cookies |
+| `CORS_ORIGIN` | `http://localhost:3000` | Comma-separated allowed browser origins (must match `NEXT_PUBLIC_APP_URL`) |
+| `CORS_ALLOW_LOCALHOST` | — | Set `true` on Render to allow `http://localhost:*` when developing against production API |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:4000/api/v1` | API base URL for the web client |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | Public web app URL |
 

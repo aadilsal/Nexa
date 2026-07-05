@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { useState } from "react";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { AnalyticsProvider } from "@nexa/analytics/react";
 import { ChunkErrorHandler } from "./chunk-error-handler";
 import { NavigationProgress } from "./navigation-progress";
@@ -32,7 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AnalyticsProvider apiUrl={apiUrl}>
         <QueryClientProvider client={queryClient}>
           {children}
-          <Toaster richColors position="top-center" />
+          <Toaster />
         </QueryClientProvider>
       </AnalyticsProvider>
     </ThemeProvider>

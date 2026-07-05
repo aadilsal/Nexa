@@ -23,6 +23,12 @@ export async function renderEmail<P>(
   const html = await render(Component(props), { pretty: true });
   const text = toPlainText(props);
 
+  if (!html.trim() || html.includes("server rendering errored")) {
+    throw new Error(
+      `Email template failed to render (subject: ${subject}). Check Tailwind/Head layout.`,
+    );
+  }
+
   return { html, text, subject, previewText };
 }
 

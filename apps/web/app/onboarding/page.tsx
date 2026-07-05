@@ -328,48 +328,64 @@ export default function OnboardingPage() {
                   {incomes.map((income, i) => (
                     <div
                       key={i}
-                      className="grid gap-4 rounded-xl bg-muted/30 p-4 sm:grid-cols-2"
+                      className="space-y-4 rounded-xl bg-muted/30 p-4"
                     >
-                      <FormField label="Source" htmlFor={`income-name-${i}`}>
-                        <Input
-                          id={`income-name-${i}`}
-                          value={income.name}
-                          onChange={(e) => {
-                            const next = [...incomes];
-                            next[i].name = e.target.value;
-                            setIncomes(next);
-                          }}
-                          placeholder="e.g. Salary"
-                        />
-                      </FormField>
-                      <FormField
-                        label="Expected amount"
-                        htmlFor={`income-amount-${i}`}
-                      >
-                        <div className="flex gap-2">
-                          <CurrencySelect
-                            value={income.currency}
-                            onChange={(value) => {
-                              const next = [...incomes];
-                              next[i].currency = value;
-                              setIncomes(next);
-                            }}
-                            compact
-                          />
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <FormField label="Source" htmlFor={`income-name-${i}`}>
                           <Input
-                            id={`income-amount-${i}`}
-                            type="number"
-                            className="font-mono"
-                            value={income.expectedAmount}
+                            id={`income-name-${i}`}
+                            value={income.name}
                             onChange={(e) => {
                               const next = [...incomes];
-                              next[i].expectedAmount = Number(e.target.value);
+                              next[i].name = e.target.value;
                               setIncomes(next);
                             }}
-                            placeholder="120000"
+                            placeholder="e.g. Salary"
                           />
-                        </div>
-                      </FormField>
+                        </FormField>
+                        <FormField
+                          label="Expected amount"
+                          htmlFor={`income-amount-${i}`}
+                        >
+                          <div className="flex gap-2">
+                            <CurrencySelect
+                              value={income.currency}
+                              onChange={(value) => {
+                                const next = [...incomes];
+                                next[i].currency = value;
+                                setIncomes(next);
+                              }}
+                              compact
+                            />
+                            <Input
+                              id={`income-amount-${i}`}
+                              type="number"
+                              className="font-mono"
+                              value={income.expectedAmount}
+                              onChange={(e) => {
+                                const next = [...incomes];
+                                next[i].expectedAmount = Number(e.target.value);
+                                setIncomes(next);
+                              }}
+                              placeholder="120000"
+                            />
+                          </div>
+                        </FormField>
+                      </div>
+                      {incomes.length > 1 ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="gap-2 text-muted-foreground hover:text-destructive"
+                          onClick={() =>
+                            setIncomes(incomes.filter((_, idx) => idx !== i))
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Remove
+                        </Button>
+                      ) : null}
                     </div>
                   ))}
                 </div>

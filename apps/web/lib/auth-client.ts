@@ -12,7 +12,12 @@ function storeBearerToken(raw: string) {
 }
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  // Use the page origin in the browser so local dev / preview URLs don't
+  // cross-origin POST to a baked-in production BETTER_AUTH_URL.
+  baseURL:
+    typeof window !== "undefined"
+      ? window.location.origin
+      : (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   fetchOptions: {
     onSuccess: (ctx) => {
       const token = ctx.response.headers.get("set-auth-token");

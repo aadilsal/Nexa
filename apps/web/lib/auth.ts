@@ -3,7 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { bearer, magicLink } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { PrismaClient } from "@prisma/client";
-import { sendAuthEmail } from "./email";
+import { sendAuthEmail, appUrl } from "./email";
 
 const prisma = new PrismaClient();
 
@@ -14,11 +14,18 @@ export const auth = betterAuth({
     requireEmailVerification: true,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
-      await sendAuthEmail({
+      void sendAuthEmail({
         to: user.email,
         type: "password-reset",
         firstName: user.name,
         url,
+      });
+    },
+    onPasswordReset: async ({ user }) => {
+      void sendAuthEmail({
+        to: user.email,
+        type: "password-changed",
+        firstName: user.name,
       });
     },
   },
@@ -26,11 +33,19 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      await sendAuthEmail({
+      void sendAuthEmail({
         to: user.email,
         type: "verify-email",
         firstName: user.name,
         url,
+      });
+    },
+    afterEmailVerification: async (user) => {
+      void sendAuthEmail({
+        to: user.email,
+        type: "welcome",
+        firstName: user.name,
+        url: appUrl("/onboarding"),
       });
     },
   },
@@ -39,7 +54,7 @@ export const auth = betterAuth({
     magicLink({
       expiresIn: 300,
       sendMagicLink: async ({ email, url }) => {
-        await sendAuthEmail({
+        void sendAuthEmail({
           to: email,
           type: "magic-link",
           email,

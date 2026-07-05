@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { sanitizeInsight } from "@/lib/sanitize-insight";
 
 interface HealthScoreCardProps {
   score: number;
@@ -54,6 +55,8 @@ interface InsightCardProps {
 }
 
 export function InsightCard({ insight, className }: InsightCardProps) {
+  const cleaned = sanitizeInsight(insight);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -62,16 +65,22 @@ export function InsightCard({ insight, className }: InsightCardProps) {
     >
       <Card
         className={cn(
-          "border-l-4 border-l-primary bg-card shadow-sm",
+          "overflow-hidden border border-border/60 bg-card shadow-sm",
           className,
         )}
       >
-        <CardContent className="p-6">
-          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-primary">
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-            Today&apos;s insight
+        <div className="h-1 bg-linear-to-r from-primary/80 via-primary to-primary/40" />
+        <CardContent className="p-5 sm:p-6">
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Today&apos;s insight</p>
+              <p className="text-xs text-muted-foreground">Based on your latest activity</p>
+            </div>
           </div>
-          <p className="text-sm leading-relaxed text-foreground">{insight}</p>
+          <p className="text-sm leading-relaxed text-foreground/90">{cleaned}</p>
         </CardContent>
       </Card>
     </motion.div>

@@ -28,22 +28,22 @@ export function EmailLayout({
 }: EmailLayoutProps) {
   return (
     <Html lang="en">
-      <Head>
-        <Font
-          fontFamily="Inter"
-          fallbackFontFamily="Arial"
-          webFont={{
-            url: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
-            format: "woff2",
-          }}
-          fontWeight={400}
-          fontStyle="normal"
-        />
-        <meta name="color-scheme" content="light dark" />
-        <meta name="supported-color-schemes" content="light dark" />
-      </Head>
-      <Preview>{preview}</Preview>
       <Tailwind config={tailwindConfig}>
+        <Head>
+          <Font
+            fontFamily="Inter"
+            fallbackFontFamily="Arial"
+            webFont={{
+              url: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+              format: "woff2",
+            }}
+            fontWeight={400}
+            fontStyle="normal"
+          />
+          <meta name="color-scheme" content="light dark" />
+          <meta name="supported-color-schemes" content="light dark" />
+        </Head>
+        <Preview>{preview}</Preview>
         <Body
           className="mx-auto my-0 bg-slate-50 font-sans antialiased"
           style={{ backgroundColor: "#F8FAFC", margin: 0, padding: 0 }}
@@ -58,7 +58,11 @@ export function EmailLayout({
           >
             <tbody>
               <tr>
-                <td align="center" className="px-4 py-8 sm:px-6">
+                <td
+                  align="center"
+                  className="px-6 py-8"
+                  style={{ padding: "32px 24px" }}
+                >
                   <table
                     role="presentation"
                     cellPadding={0}

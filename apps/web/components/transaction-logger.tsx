@@ -16,6 +16,7 @@ import { api } from "@/lib/api";
 import { useCurrency } from "@/lib/currency";
 import { track } from "@nexa/analytics/react";
 import { cn } from "@/lib/utils";
+import { showTransactionInsightToast } from "@/components/notifications/transaction-insight-toast";
 
 interface ParsedPreview {
   description: string;
@@ -97,12 +98,20 @@ export function TransactionLogger() {
       track("transaction_logged", {
         type: data.transaction.type === "INCOME" ? "income" : "expense",
       });
-      toast.success(
-        data.insight ??
-          `Logged! Safe To Spend: ${formatAmount(data.safeToSpend.after)}`,
-      );
+      const txCurrency =
+        (data.transaction.currency as CurrencyCode | undefined) ?? currency;
+      const amountPrefix = data.transaction.type === "INCOME" ? "+" : "−";
+      showTransactionInsightToast({
+        description: data.transaction.description,
+        amountLabel: `${amountPrefix}${formatAmount(data.transaction.amount, txCurrency)}`,
+        safeToSpend: data.safeToSpend,
+        healthScore: data.healthScore,
+        insight: data.insight,
+        formatAmount: (value) => formatAmount(value, txCurrency),
+      });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-insight"] });
     },
     onError: (err) =>
       toast.error(err instanceof Error ? err.message : "Failed to log"),

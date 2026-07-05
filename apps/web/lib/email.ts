@@ -20,6 +20,10 @@ export interface SendEmailOptions {
 }
 
 export async function sendEmail(options: SendEmailOptions) {
+  if (!options.html?.trim()) {
+    throw new Error("Refusing to send email with empty HTML body");
+  }
+
   if (process.env.NODE_ENV === "development") {
     console.log("\n📧 Email (dev)\n", {
       to: options.to,
@@ -44,9 +48,14 @@ export async function sendEmail(options: SendEmailOptions) {
 /** Auth emails using the Nexa design system */
 export async function sendAuthEmail(options: {
   to: string;
-  type: "verify-email" | "magic-link" | "password-reset" | "welcome";
+  type:
+    | "verify-email"
+    | "magic-link"
+    | "password-reset"
+    | "password-changed"
+    | "welcome";
   firstName?: string | null;
-  url: string;
+  url?: string;
   email?: string;
 }) {
   const app = APP_URL;
@@ -54,7 +63,7 @@ export async function sendAuthEmail(options: {
   if (options.type === "verify-email") {
     const rendered = await sendNexaEmail("auth.verify-email", {
       firstName: options.firstName,
-      verifyUrl: options.url,
+      verifyUrl: options.url!,
       appUrl: app,
     });
     await sendEmail({ to: options.to, ...rendered });
@@ -67,7 +76,7 @@ export async function sendAuthEmail(options: {
   if (options.type === "magic-link") {
     const rendered = await sendNexaEmail("auth.magic-link", {
       email: options.email ?? options.to,
-      magicLinkUrl: options.url,
+      magicLinkUrl: options.url!,
       appUrl: app,
     });
     await sendEmail({ to: options.to, ...rendered });
@@ -80,7 +89,7 @@ export async function sendAuthEmail(options: {
   if (options.type === "password-reset") {
     const rendered = await sendNexaEmail("auth.password-reset", {
       firstName: options.firstName,
-      resetUrl: options.url,
+      resetUrl: options.url!,
       appUrl: app,
     });
     await sendEmail({ to: options.to, ...rendered });
@@ -90,10 +99,20 @@ export async function sendAuthEmail(options: {
     return;
   }
 
+  if (options.type === "password-changed") {
+    const rendered = await sendNexaEmail("auth.password-changed", {
+      firstName: options.firstName,
+      changedAt: new Date(),
+      appUrl: app,
+    });
+    await sendEmail({ to: options.to, ...rendered });
+    return;
+  }
+
   if (options.type === "welcome") {
     const rendered = await sendNexaEmail("auth.welcome", {
       firstName: options.firstName,
-      onboardingUrl: options.url,
+      onboardingUrl: options.url ?? appUrl("/onboarding"),
       appUrl: app,
     });
     await sendEmail({ to: options.to, ...rendered });

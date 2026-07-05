@@ -27,6 +27,7 @@ export default function SignupPage() {
   const router = useAppRouter();
   const [error, setError] = useState("");
   const [magicSent, setMagicSent] = useState(false);
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false);
 
   const {
     register,
@@ -65,14 +66,25 @@ export default function SignupPage() {
       return;
     }
     setError("");
-    const name = getValues("name");
-    await authClient.signIn.magicLink({
-      email: parsed.data.email,
-      name: name || undefined,
-      callbackURL: "/onboarding",
-      newUserCallbackURL: "/onboarding",
-    });
-    setMagicSent(true);
+    setMagicLinkLoading(true);
+    try {
+      const name = getValues("name");
+      const result = await authClient.signIn.magicLink({
+        email: parsed.data.email,
+        name: name || undefined,
+        callbackURL: "/onboarding",
+        newUserCallbackURL: "/onboarding",
+      });
+      if (result.error) {
+        setError(result.error.message ?? "Could not send sign-in link");
+        return;
+      }
+      setMagicSent(true);
+    } catch {
+      setError("Could not send sign-in link. Please try again.");
+    } finally {
+      setMagicLinkLoading(false);
+    }
   }
 
   if (magicSent) {
@@ -148,6 +160,7 @@ export default function SignupPage() {
           variant="outline"
           className="w-full"
           type="button"
+          loading={magicLinkLoading}
           disabled={isSubmitting}
           onClick={handleMagicSignup}
         >

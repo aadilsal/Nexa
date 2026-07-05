@@ -67,6 +67,7 @@ REDIS_URL=
 KEK=
 BETTER_AUTH_SECRET=          # same value as Vercel
 CORS_ORIGIN=https://YOUR-APP.vercel.app
+CORS_ALLOW_LOCALHOST=true   # optional — local dev against production API
 GROQ_API_KEY=
 RESEND_API_KEY=
 RESEND_FROM=Nexa <onboarding@yourdomain.com>

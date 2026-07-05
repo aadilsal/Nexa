@@ -9,9 +9,38 @@ async function bootstrap() {
 
   app.setGlobalPrefix("api/v1");
   app.use(cookieParser());
+
+  const allowedOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN ?? "http://localhost:3000",
+    origin: (origin, callback) => {
+      // Server-to-server or same-origin requests may omit Origin.
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, origin);
+        return;
+      }
+
+      // Allow local dev against a remote API when explicitly configured.
+      if (
+        process.env.CORS_ALLOW_LOCALHOST === "true" &&
+        /^http:\/\/localhost(:\d+)?$/.test(origin)
+      ) {
+        callback(null, origin);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "x-analytics-signature"],
   });
   app.useGlobalPipes(
     new ValidationPipe({
