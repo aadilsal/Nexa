@@ -27,6 +27,7 @@ jobs:
       - run: pnpm install
 
       - run: pnpm --filter @nexa/shared build
+      - run: pnpm --filter @nexa/analytics build
       - run: pnpm --filter @nexa/finance-engine build
       - run: pnpm --filter @nexa/finance-engine test
       - run: pnpm --filter @nexa/emails build
