@@ -1,6 +1,7 @@
 import type { Category } from "@nexa/shared";
 import { ENGINE_VERSION } from "@nexa/shared";
 import type { ComputedGoal, EngineTransaction } from "./types.js";
+import { groupExpensesByCategory } from "./category-breakdown.js";
 
 export interface MonthlyReviewInput {
   cycleStart: Date;
@@ -45,17 +46,6 @@ function sumByType(
   return transactions
     .filter((t) => t.type === type)
     .reduce((s, t) => s + t.amount, 0);
-}
-
-function groupByCategory(
-  transactions: EngineTransaction[],
-): Partial<Record<Category, number>> {
-  const result: Partial<Record<Category, number>> = {};
-  for (const tx of transactions) {
-    if (tx.type !== "EXPENSE") continue;
-    result[tx.category] = (result[tx.category] ?? 0) + tx.amount;
-  }
-  return result;
 }
 
 function buildRecommendations(input: {
@@ -121,7 +111,7 @@ export function calculateMonthlyReview(
   const income = sumByType(input.transactions, "INCOME");
   const expenses = sumByType(input.transactions, "EXPENSE");
   const savings = income - expenses;
-  const categoryBreakdown = groupByCategory(input.transactions);
+  const categoryBreakdown = groupExpensesByCategory(input.transactions);
 
   const expenseTx = input.transactions
     .filter((t) => t.type === "EXPENSE")

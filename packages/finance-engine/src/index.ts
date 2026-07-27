@@ -44,6 +44,20 @@ export type {
   MonthlyReviewOutput,
 } from "./monthly-review.js";
 
+export {
+  groupExpensesByCategory,
+  findExtremeCategory,
+  calculatePeriodSummary,
+} from "./category-breakdown.js";
+export type { PeriodSummary, PeriodTransaction } from "./category-breakdown.js";
+
+export {
+  getPeriodBounds,
+  getCalendarMonthBounds,
+  getCalendarYearBounds,
+} from "./period-bounds.js";
+export type { ReportPeriod } from "./period-bounds.js";
+
 export { detectSpendingTrends } from "./spending-trend.js";
 export type {
   CategorySpendingTrend,

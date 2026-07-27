@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAppRouter } from "@/lib/navigation";
 import { useEffect } from "react";
-import { Receipt, Target, TrendingUp } from "lucide-react";
+import { MessageSquare, Receipt, Target, TrendingUp } from "lucide-react";
 import { usePasskeyPrompt } from "@/components/passkey-prompt";
 import { RecategorizeSelect } from "@/components/recategorize-select";
 import { Button } from "@/components/ui/button";
@@ -247,7 +247,17 @@ export default function DashboardPage() {
         eyebrow={getGreeting()}
         title={userName ? `${userName}, here's your snapshot` : "Your financial snapshot"}
         description="Everything you need to know before your next spending decision."
-        actions={<CanIBuyThis />}
+        actions={
+          <>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/chat">
+                <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                AI Coach
+              </Link>
+            </Button>
+            <CanIBuyThis />
+          </>
+        }
       />
 
       {dashboard.cycle.status === "PENDING_CONFIRMATION" && (

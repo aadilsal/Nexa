@@ -28,6 +28,9 @@ export function RecategorizeSelect({ transactionId, category }: Props) {
       track("transaction_recategorized");
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions-history"] });
+      queryClient.invalidateQueries({ queryKey: ["reports-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-review"] });
     },
   });
 

@@ -3,8 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { parseTransactionInput } from "@nexa/finance-engine";
 import {
+  getPeriodBounds,
+  parseTransactionInput,
+  type ReportPeriod,
+} from "@nexa/finance-engine";
+import {
+  CATEGORIES,
   normalizeCurrency,
   type Category,
   type CreateTransactionInput,
@@ -183,6 +188,68 @@ export class TransactionsService {
       type: tx.type,
       createdAt: tx.createdAt,
     }));
+  }
+
+  async history(
+    userId: string,
+    options: {
+      period?: string;
+      date?: string;
+      category?: string;
+      page?: string;
+      pageSize?: string;
+    },
+  ) {
+    const validPeriods: ReportPeriod[] = ["week", "month", "year"];
+    const period = validPeriods.includes(options.period as ReportPeriod)
+      ? (options.period as ReportPeriod)
+      : "month";
+
+    const reference = options.date ? new Date(options.date) : new Date();
+    const { start, end } = getPeriodBounds(period, reference);
+
+    const category =
+      options.category && CATEGORIES.includes(options.category as Category)
+        ? (options.category as Category)
+        : undefined;
+
+    const pageSize = Math.min(
+      100,
+      Math.max(1, Number.parseInt(options.pageSize ?? "25", 10) || 25),
+    );
+    const page = Math.max(1, Number.parseInt(options.page ?? "1", 10) || 1);
+
+    const transactions = await this.ledger.getEffectiveTransactionsInRange(
+      userId,
+      start,
+      end,
+    );
+
+    const filtered = transactions
+      .filter((tx) => !category || tx.category === category)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    const total = filtered.length;
+    const items = filtered
+      .slice((page - 1) * pageSize, page * pageSize)
+      .map((tx) => ({
+        id: tx.eventId,
+        description: tx.description,
+        amount: tx.amount,
+        currency: normalizeCurrency(tx.currency),
+        category: tx.category,
+        type: tx.type,
+        createdAt: tx.createdAt,
+      }));
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      periodStart: start.toISOString(),
+      periodEnd: end.toISOString(),
+    };
   }
 
   async correct(

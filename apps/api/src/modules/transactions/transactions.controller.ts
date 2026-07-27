@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -45,6 +46,24 @@ export class TransactionsController {
   @Get()
   list(@Req() req: { userId: string }) {
     return this.transactionsService.list(req.userId);
+  }
+
+  @Get("history")
+  history(
+    @Req() req: { userId: string },
+    @Query("period") period?: string,
+    @Query("date") date?: string,
+    @Query("category") category?: string,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
+  ) {
+    return this.transactionsService.history(req.userId, {
+      period,
+      date,
+      category,
+      page,
+      pageSize,
+    });
   }
 
   @Post(":id/correct")

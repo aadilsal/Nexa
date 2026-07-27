@@ -115,4 +115,71 @@ export class LedgerService {
 
     return effective;
   }
+
+  /**
+   * Reconstructs effective transactions whose CREATE event falls within
+   * [start, end], across all of a user's cycles. Corrections/deletes for
+   * those transactions are pulled regardless of when they happened, since a
+   * correction can be appended long after the original transaction's date —
+   * scoping the whole query by createdAt would silently miss them.
+   */
+  async getEffectiveTransactionsInRange(
+    userId: string,
+    start: Date,
+    end: Date,
+  ): Promise<EffectiveTransaction[]> {
+    const createEvents = await this.prisma.transactionEvent.findMany({
+      where: {
+        userId,
+        eventType: "CREATE",
+        createdAt: { gte: start, lte: end },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (createEvents.length === 0) return [];
+
+    const createIds = createEvents.map((event) => event.id);
+    const followupEvents = await this.prisma.transactionEvent.findMany({
+      where: { userId, originalEventId: { in: createIds } },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const deletedIds = new Set<string>();
+    const corrections = new Map<string, TransactionPayload>();
+
+    for (const event of followupEvents) {
+      if (event.eventType === "DELETE" && event.originalEventId) {
+        deletedIds.add(event.originalEventId);
+      }
+      if (event.eventType === "CORRECTION" && event.originalEventId) {
+        const payload = await this.userEncryption.decryptJsonForUser<TransactionPayload>(
+          userId,
+          event.encryptedPayload,
+        );
+        corrections.set(event.originalEventId, payload);
+      }
+    }
+
+    const effective: EffectiveTransaction[] = [];
+
+    for (const event of createEvents) {
+      if (deletedIds.has(event.id)) continue;
+
+      const payload =
+        corrections.get(event.id) ??
+        (await this.userEncryption.decryptJsonForUser<TransactionPayload>(
+          userId,
+          event.encryptedPayload,
+        ));
+
+      effective.push({
+        ...payload,
+        eventId: event.id,
+        createdAt: event.createdAt,
+      });
+    }
+
+    return effective;
+  }
 }

@@ -272,7 +272,7 @@ export class ReviewsService {
           onTrack: goal.onTrack,
         };
       }),
-      reportUrl: `${appUrl}/weekly-review`,
+      reportUrl: `${appUrl}/reports`,
       appUrl,
     });
 

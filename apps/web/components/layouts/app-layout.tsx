@@ -8,8 +8,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  MessageSquare,
-  ShoppingBag,
   Target,
   UserCircle,
 } from "lucide-react";
@@ -25,9 +23,7 @@ import { useAppRouter } from "@/lib/navigation";
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/goals", label: "Goals", icon: Target },
-  { href: "/can-i-buy", label: "Can I Buy?", icon: ShoppingBag },
-  { href: "/weekly-review", label: "Weekly Review", icon: CalendarRange },
-  { href: "/chat", label: "AI Coach", icon: MessageSquare },
+  { href: "/reports", label: "Reports", icon: CalendarRange },
   { href: "/profile", label: "Profile", icon: UserCircle },
   { href: "/support", label: "Help", icon: HelpCircle },
 ];

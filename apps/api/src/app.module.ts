@@ -18,6 +18,7 @@ import { AiModule } from "./modules/ai/ai.module";
 import { AccountModule } from "./modules/account/account.module";
 import { ExportModule } from "./modules/export/export.module";
 import { ReviewsModule } from "./modules/reviews/reviews.module";
+import { ReportsModule } from "./modules/reports/reports.module";
 import { AnalyticsPrismaModule } from "./common/prisma/analytics-prisma.module";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { SupportModule } from "./modules/support/support.module";
@@ -51,6 +52,7 @@ import { FinancialPlanModule } from "./modules/financial-plan/financial-plan.mod
     SimulationsModule,
     AiModule,
     ReviewsModule,
+    ReportsModule,
     ExportModule,
     AccountModule,
     AnalyticsModule,

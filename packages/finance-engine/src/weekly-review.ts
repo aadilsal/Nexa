@@ -2,6 +2,10 @@ import type { Category } from "@nexa/shared";
 import { ENGINE_VERSION } from "@nexa/shared";
 import type { EngineGoal, EngineTransaction } from "./types.js";
 import { sumCharity } from "./safe-to-spend.js";
+import {
+  findExtremeCategory,
+  groupExpensesByCategory,
+} from "./category-breakdown.js";
 
 export type WeeklyRating =
   | "EXCELLENT"
@@ -81,32 +85,6 @@ function sumByType(
   return transactions
     .filter((t) => t.type === type)
     .reduce((s, t) => s + t.amount, 0);
-}
-
-function groupExpensesByCategory(
-  transactions: EngineTransaction[],
-): Partial<Record<Category, number>> {
-  const result: Partial<Record<Category, number>> = {};
-  for (const tx of transactions) {
-    if (tx.type !== "EXPENSE") continue;
-    result[tx.category] = (result[tx.category] ?? 0) + tx.amount;
-  }
-  return result;
-}
-
-function findExtremeCategory(
-  byCategory: Partial<Record<Category, number>>,
-  mode: "max" | "min",
-): { category: Category; amount: number } | null {
-  const entries = Object.entries(byCategory).filter(
-    (entry): entry is [Category, number] => (entry[1] ?? 0) > 0,
-  );
-
-  if (entries.length === 0) return null;
-
-  entries.sort((a, b) => (mode === "max" ? b[1] - a[1] : a[1] - b[1]));
-  const [category, amount] = entries[0]!;
-  return { category, amount };
 }
 
 function pctChange(current: number, previous: number): number | null {
