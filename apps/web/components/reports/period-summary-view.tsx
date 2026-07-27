@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ContentSection, StatStrip } from "@/components/layouts/surface";
 import { CategoryBreakdownList } from "@/components/reports/category-breakdown-list";
+import { SpendingTrendChart, type TrendBucket } from "@/components/reports/spending-trend-chart";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useCurrency } from "@/lib/currency";
@@ -24,6 +25,7 @@ interface PeriodSummaryData {
     category: Category;
     description: string | null;
   } | null;
+  trend: TrendBucket[];
 }
 
 function formatPeriodRange(start: string, end: string, period: ReportPeriod) {
@@ -89,6 +91,12 @@ export function PeriodSummaryView({ period }: { period: ReportPeriod }) {
           ]}
         />
       </div>
+
+      {data.trend.some((bucket) => bucket.expenses > 0) ? (
+        <ContentSection title="Spending trend">
+          <SpendingTrendChart data={data.trend} formatAmount={formatAmount} />
+        </ContentSection>
+      ) : null}
 
       <ContentSection title="Spending by category">
         <CategoryBreakdownList byCategory={data.byCategory} formatAmount={formatAmount} />

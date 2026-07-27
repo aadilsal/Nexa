@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { ContentSection, StatStrip } from "@/components/layouts/surface";
 import { CategoryBreakdownList } from "@/components/reports/category-breakdown-list";
+import { SpendingTrendChart, type TrendBucket } from "@/components/reports/spending-trend-chart";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useCurrency } from "@/lib/currency";
@@ -35,6 +36,11 @@ export function WeekReviewView() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["weekly-review"],
     queryFn: () => api<WeeklyReviewData>("/reviews/weekly"),
+  });
+
+  const { data: trendData } = useQuery({
+    queryKey: ["reports-summary", "week"],
+    queryFn: () => api<{ trend: TrendBucket[] }>("/reports/summary?period=week"),
   });
 
   useEffect(() => {
@@ -93,6 +99,12 @@ export function WeekReviewView() {
           },
         ]}
       />
+
+      {trendData?.trend.some((bucket) => bucket.expenses > 0) ? (
+        <ContentSection title="Spending trend">
+          <SpendingTrendChart data={trendData.trend} formatAmount={formatAmount} />
+        </ContentSection>
+      ) : null}
 
       <ContentSection title="Spending by category">
         <CategoryBreakdownList byCategory={data.review.byCategory} formatAmount={formatAmount} />

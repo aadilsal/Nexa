@@ -1,9 +1,11 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import {
+  buildTrendBuckets,
   calculatePeriodSummary,
   getPeriodBounds,
   type PeriodSummary,
   type ReportPeriod,
+  type TrendBucket,
 } from "@nexa/finance-engine";
 import { RateLimitService } from "../../common/rate-limit/rate-limit.service";
 import { CurrencyService } from "../../common/currency/currency.service";
@@ -32,7 +34,7 @@ export class ReportsService {
     userId: string,
     period: ReportPeriod,
     referenceDate: Date,
-  ): Promise<PeriodSummary> {
+  ): Promise<PeriodSummary & { trend: TrendBucket[] }> {
     await this.rateLimit.assertUserLimit(userId, "reports", 60, 60);
 
     const { start, end } = getPeriodBounds(period, referenceDate);
@@ -51,6 +53,9 @@ export class ReportsService {
       description: tx.description,
     }));
 
-    return calculatePeriodSummary(converted, start, end);
+    return {
+      ...calculatePeriodSummary(converted, start, end),
+      trend: buildTrendBuckets(converted, period, start, end),
+    };
   }
 }

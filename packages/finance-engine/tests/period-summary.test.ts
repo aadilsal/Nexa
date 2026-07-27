@@ -5,6 +5,7 @@ import {
   getCalendarYearBounds,
   getPeriodBounds,
 } from "../src/period-bounds.js";
+import { buildTrendBuckets } from "../src/trend-buckets.js";
 import type { PeriodTransaction } from "../src/category-breakdown.js";
 
 const transactions: PeriodTransaction[] = [
@@ -88,6 +89,35 @@ describe("getCalendarYearBounds", () => {
     expect(start.getDate()).toBe(1);
     expect(end.getMonth()).toBe(11);
     expect(end.getDate()).toBe(31);
+  });
+});
+
+describe("buildTrendBuckets", () => {
+  it("buckets a month's transactions by day", () => {
+    const { start, end } = getCalendarMonthBounds(new Date("2025-06-15"));
+    const buckets = buildTrendBuckets(transactions, "month", start, end);
+
+    expect(buckets).toHaveLength(30);
+    const day10 = buckets.find((b) => b.label === "10");
+    const day12 = buckets.find((b) => b.label === "12");
+    expect(day10?.expenses).toBe(20000);
+    expect(day12?.expenses).toBe(60000);
+    expect(buckets.find((b) => b.label === "1")?.expenses).toBe(0);
+  });
+
+  it("buckets a year's transactions by month", () => {
+    const { start, end } = getCalendarYearBounds(new Date("2025-06-15"));
+    const buckets = buildTrendBuckets(transactions, "year", start, end);
+
+    expect(buckets).toHaveLength(12);
+    expect(buckets.map((b) => b.label)).toEqual([
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ]);
+    const june = buckets.find((b) => b.label === "Jun");
+    expect(june?.income).toBe(170000);
+    expect(june?.expenses).toBe(80000);
+    expect(buckets.find((b) => b.label === "Jan")?.expenses).toBe(0);
   });
 });
 

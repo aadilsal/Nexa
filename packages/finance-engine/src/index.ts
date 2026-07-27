@@ -58,6 +58,9 @@ export {
 } from "./period-bounds.js";
 export type { ReportPeriod } from "./period-bounds.js";
 
+export { buildTrendBuckets } from "./trend-buckets.js";
+export type { TrendBucket } from "./trend-buckets.js";
+
 export { detectSpendingTrends } from "./spending-trend.js";
 export type {
   CategorySpendingTrend,
