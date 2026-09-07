@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarRange,
-  HelpCircle,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -17,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { signOut } from "@/lib/auth-client";
+import { useSession } from "@/lib/session";
 import { useAppRouter } from "@/lib/navigation";
 
 const NAV_LINKS = [
@@ -25,7 +24,6 @@ const NAV_LINKS = [
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/reports", label: "Reports", icon: CalendarRange },
   { href: "/profile", label: "Profile", icon: UserCircle },
-  { href: "/support", label: "Help", icon: HelpCircle },
 ];
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
@@ -60,9 +58,10 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useAppRouter();
+  const { logout } = useSession();
 
   async function handleSignOut() {
-    await signOut();
+    await logout();
     router.push("/");
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { useAction } from "convex/react";
 import { motion, AnimatePresence } from "motion/react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,7 +26,8 @@ import {
   PageShell,
   StatStrip,
 } from "@/components/layouts/surface";
-import { api } from "@/lib/api";
+import { api } from "@/convex/_generated/api";
+import { useSession } from "@/lib/session";
 import { useCurrency } from "@/lib/currency";
 import { FEATURE_HELP } from "@/lib/feature-help";
 import { track } from "@nexa/analytics/react";
@@ -45,7 +47,12 @@ interface SimulationResult {
 }
 
 export default function CanIBuyPage() {
+  const { token } = useSession();
   const { primaryCurrency, formatAmount } = useCurrency();
+  const simulate = useAction(api.simulations.purchase);
+  const [result, setResult] = useState<SimulationResult | null>(null);
+  const [isPending, setIsPending] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -57,26 +64,20 @@ export default function CanIBuyPage() {
     defaultValues: { itemName: "", amount: "", currency: primaryCurrency },
   });
 
-  const mutation = useMutation({
-    mutationFn: (data: PurchaseSimulationFormInput) =>
-      api<SimulationResult>("/simulations/purchase", {
-        method: "POST",
-        body: JSON.stringify({
-          itemName: data.itemName,
-          amount: Number(data.amount),
-          currency: data.currency ?? primaryCurrency,
-        }),
-      }),
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Simulation failed"),
-    onSuccess: (data) => {
-      track("simulation_run", {
-        recommendation: data.recommendation,
-      });
-    },
-  });
+  async function onSubmit(data: PurchaseSimulationFormInput) {
+    if (!token) return;
+    setIsPending(true);
+    try {
+      const response = await simulate({ sessionToken: token, itemName: data.itemName, amount: Number(data.amount), currency: data.currency ?? primaryCurrency });
+      setResult(response as unknown as SimulationResult);
+      track("simulation_run", { recommendation: response.recommendation });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Simulation failed");
+    } finally {
+      setIsPending(false);
+    }
+  }
 
-  const result = mutation.data;
   const isGoAhead = result?.recommendation === "GO_AHEAD";
 
   return (
@@ -92,7 +93,7 @@ export default function CanIBuyPage() {
         className="border-t-0 pt-0"
       >
         <form
-          onSubmit={handleSubmit((data) => mutation.mutate(data))}
+          onSubmit={handleSubmit(onSubmit)}
           className="space-y-5"
           noValidate
         >
@@ -141,7 +142,7 @@ export default function CanIBuyPage() {
             type="submit"
             className="w-full sm:w-auto sm:min-w-48"
             size="lg"
-            loading={isSubmitting || mutation.isPending}
+            loading={isSubmitting || isPending}
           >
             Simulate purchase
           </Button>

@@ -1,19 +1,10 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useMemo,
-  type ReactNode,
-} from "react";
-import { useQuery } from "@tanstack/react-query";
-import {
-  DEFAULT_CURRENCY,
-  formatMoney,
-  type CurrencyCode,
-} from "@nexa/shared";
-import { api } from "@/lib/api";
-import { hasLocalAuthSession, useSession } from "@/lib/auth-client";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { useQuery } from "convex/react";
+import { DEFAULT_CURRENCY, formatMoney, type CurrencyCode } from "@nexa/shared";
+import { api } from "@/convex/_generated/api";
+import { useSession } from "@/lib/session";
 
 interface CurrencyContextValue {
   primaryCurrency: CurrencyCode;
@@ -25,47 +16,27 @@ interface CurrencyContextValue {
 const CurrencyContext = createContext<CurrencyContextValue>({
   primaryCurrency: DEFAULT_CURRENCY,
   ratesDate: null,
-  formatAmount: (amount, currency) =>
-    formatMoney(amount, currency ?? DEFAULT_CURRENCY),
+  formatAmount: (amount, currency) => formatMoney(amount, currency ?? DEFAULT_CURRENCY),
   isLoading: false,
 });
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const { data: session } = useSession();
-  const { data, isLoading } = useQuery({
-    queryKey: ["profile-currency"],
-    queryFn: async () => {
-      const profile = await api<{
-        settings: { primaryCurrency: string };
-      }>("/users/me");
-      return profile.settings;
-    },
-    enabled: Boolean(session) || hasLocalAuthSession(),
-    staleTime: 300_000,
-  });
-
-  const { data: ratesMeta } = useQuery({
-    queryKey: ["exchange-rates"],
-    queryFn: () =>
-      api<{ date: string | null; source: string }>("/currencies"),
-    staleTime: 3600_000,
-  });
+  const { token } = useSession();
+  const settings = useQuery(api.settings.get, token ? { sessionToken: token } : "skip");
+  const rates = useQuery(api.currencies.getRates, token ? { sessionToken: token } : "skip");
 
   const value = useMemo<CurrencyContextValue>(() => {
-    const primaryCurrency = (data?.primaryCurrency ??
-      DEFAULT_CURRENCY) as CurrencyCode;
+    const primaryCurrency = (settings?.primaryCurrency ?? DEFAULT_CURRENCY) as CurrencyCode;
     return {
       primaryCurrency,
-      ratesDate: ratesMeta?.date ?? null,
-      formatAmount: (amount, currency) =>
-        formatMoney(amount, currency ?? primaryCurrency),
-      isLoading,
+      ratesDate: null,
+      formatAmount: (amount, currency) => formatMoney(amount, currency ?? primaryCurrency),
+      isLoading: token != null && settings === undefined,
     };
-  }, [data, ratesMeta, isLoading]);
+  }, [settings, token]);
 
-  return (
-    <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>
-  );
+  void rates;
+  return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 }
 
 export function useCurrency() {

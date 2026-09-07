@@ -1,9 +1,12 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useAction } from "convex/react";
 import { CATEGORIES, type Category } from "@nexa/shared";
 import { CategorySelect } from "@/components/category-select";
-import { api } from "@/lib/api";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { useSession } from "@/lib/session";
 import { track } from "@nexa/analytics/react";
 
 interface Props {
@@ -16,29 +19,26 @@ function asCategory(value: string): Category {
 }
 
 export function RecategorizeSelect({ transactionId, category }: Props) {
-  const queryClient = useQueryClient();
+  const { token } = useSession();
+  const updateCategory = useAction(api.transactions.updateCategory);
+  const [isPending, setIsPending] = useState(false);
 
-  const mutation = useMutation({
-    mutationFn: (newCategory: Category) =>
-      api(`/transactions/${transactionId}/category`, {
-        method: "PATCH",
-        body: JSON.stringify({ category: newCategory }),
-      }),
-    onSuccess: () => {
+  async function onChange(newCategory: Category) {
+    if (!token) return;
+    setIsPending(true);
+    try {
+      await updateCategory({ sessionToken: token, eventId: transactionId as Id<"transactionEvents">, category: newCategory });
       track("transaction_recategorized");
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions-history"] });
-      queryClient.invalidateQueries({ queryKey: ["reports-summary"] });
-      queryClient.invalidateQueries({ queryKey: ["weekly-review"] });
-    },
-  });
+    } finally {
+      setIsPending(false);
+    }
+  }
 
   return (
     <CategorySelect
       value={asCategory(category)}
-      onChange={(value) => mutation.mutate(value)}
-      disabled={mutation.isPending}
+      onChange={onChange}
+      disabled={isPending}
       compact
       className="w-auto min-w-[7.5rem] border-border bg-background text-xs"
     />

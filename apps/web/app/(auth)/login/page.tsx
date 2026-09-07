@@ -1,134 +1,46 @@
 "use client";
 
-import Link from "next/link";
-import { useAppRouter } from "@/lib/navigation";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { AuthSignInSchema, type AuthSignInInput } from "@nexa/shared";
+import { useAppRouter } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { PasswordInput } from "@/components/ui/password-input";
-import { Separator } from "@/components/ui/separator";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { authClient, signIn, waitForSession, clearStoredBearerToken } from "@/lib/auth-client";
-import { prefetchAppData } from "@/lib/prefetch-app-data";
+import { useSession } from "@/lib/session";
 import { BRAND } from "@/lib/brand";
+
+// Single-owner password + TOTP login, replacing the old Better Auth email/password +
+// magic-link + passkey flow. There's no signup here — the one owner identity is created
+// once via `npx convex run auth:setup`, not through this UI.
 
 export default function LoginPage() {
   const router = useAppRouter();
-  const queryClient = useQueryClient();
+  const { login, loginWithRecoveryCode } = useSession();
+  const [mode, setMode] = useState<"password" | "recovery">("password");
+  const [password, setPassword] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
   const [error, setError] = useState("");
-  const [magicSent, setMagicSent] = useState(false);
-  const [magicLinkLoading, setMagicLinkLoading] = useState(false);
-  const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    getValues,
-    formState: { errors, isSubmitting },
-  } = useForm<AuthSignInInput>({
-    resolver: zodResolver(AuthSignInSchema),
-    mode: "onBlur",
-    defaultValues: { email: "", password: "" },
-  });
-
-  async function onSubmit(data: AuthSignInInput) {
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setError("");
+    setIsSubmitting(true);
     try {
-      clearStoredBearerToken();
-      const result = await signIn.email(data);
-      if (result.error) {
-        setError(result.error.message ?? "Login failed");
-        return;
+      if (mode === "password") {
+        await login(password, totpCode);
+      } else {
+        await loginWithRecoveryCode(recoveryCode);
       }
-      const sessionReady = await waitForSession();
-      if (!sessionReady) {
-        setError("Session could not be established. Please try again.");
-        return;
-      }
-      void prefetchAppData(queryClient);
-      router.refresh();
       router.push("/dashboard");
-    } catch {
-      setError("Login failed. Please try again.");
-    }
-  }
-
-  async function handleMagicLink() {
-    const email = getValues("email");
-    const parsed = AuthSignInSchema.pick({ email: true }).safeParse({ email });
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Enter your email first");
-      return;
-    }
-    setError("");
-    setMagicLinkLoading(true);
-    try {
-      const result = await authClient.signIn.magicLink({
-        email: parsed.data.email,
-        callbackURL: "/dashboard",
-      });
-      if (result.error) {
-        setError(result.error.message ?? "Could not send sign-in link");
-        return;
-      }
-      setMagicSent(true);
-    } catch {
-      setError("Could not send sign-in link. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
-      setMagicLinkLoading(false);
+      setIsSubmitting(false);
     }
-  }
-
-  async function handlePasskey() {
-    setPasskeyLoading(true);
-    setError("");
-    try {
-      clearStoredBearerToken();
-      await authClient.signIn.passkey();
-      const sessionReady = await waitForSession();
-      if (!sessionReady) {
-        setError("Session could not be established. Please try again.");
-        return;
-      }
-      void prefetchAppData(queryClient);
-      router.refresh();
-      router.push("/dashboard");
-    } catch {
-      setError("Passkey sign-in failed");
-    } finally {
-      setPasskeyLoading(false);
-    }
-  }
-
-  if (magicSent) {
-    return (
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle>Check your email</CardTitle>
-          <CardDescription>
-            Sign-in link sent to {getValues("email")}. Click the link in your
-            email to sign in.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button className="w-full" variant="outline" onClick={() => setMagicSent(false)}>
-            Back
-          </Button>
-        </CardContent>
-      </Card>
-    );
   }
 
   return (
@@ -138,31 +50,44 @@ export default function LoginPage() {
         <CardDescription>{BRAND.tagline.short}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <FormField label="Email" htmlFor="email" error={errors.email?.message}>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              error={!!errors.email}
-              {...register("email")}
-            />
-          </FormField>
-
-          <FormField
-            label="Password"
-            htmlFor="password"
-            error={errors.password?.message}
-          >
-            <PasswordInput
-              id="password"
-              autoComplete="current-password"
-              placeholder="Password"
-              error={!!errors.password}
-              {...register("password")}
-            />
-          </FormField>
+        <form onSubmit={onSubmit} className="space-y-4" noValidate>
+          {mode === "password" ? (
+            <>
+              <FormField label="Password" htmlFor="password">
+                <PasswordInput
+                  id="password"
+                  autoComplete="current-password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </FormField>
+              <FormField label="Authenticator code" htmlFor="totpCode">
+                <Input
+                  id="totpCode"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="123456"
+                  maxLength={6}
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value)}
+                  required
+                />
+              </FormField>
+            </>
+          ) : (
+            <FormField label="Recovery code" htmlFor="recoveryCode">
+              <Input
+                id="recoveryCode"
+                autoComplete="off"
+                placeholder="XXXXX-XXXXX"
+                value={recoveryCode}
+                onChange={(e) => setRecoveryCode(e.target.value)}
+                required
+              />
+            </FormField>
+          )}
 
           {error ? (
             <Alert variant="destructive">
@@ -175,45 +100,17 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="flex items-center gap-3">
-          <Separator className="flex-1" />
-          <span className="text-xs text-muted-foreground">or</span>
-          <Separator className="flex-1" />
-        </div>
-
-        <div className="space-y-2">
-          <Button
-            variant="outline"
-            className="w-full"
-            type="button"
-            loading={passkeyLoading}
-            disabled={isSubmitting || magicLinkLoading}
-            onClick={handlePasskey}
-          >
-            Sign in with passkey
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full"
-            type="button"
-            loading={magicLinkLoading}
-            disabled={isSubmitting || passkeyLoading}
-            onClick={handleMagicLink}
-          >
-            Email me a sign-in link
-          </Button>
-        </div>
-
         <p className="text-center text-sm">
-          <Link href="/forgot-password" className="text-primary hover:underline">
-            Forgot password?
-          </Link>
-        </p>
-        <p className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-primary hover:underline">
-            Sign up
-          </Link>
+          <button
+            type="button"
+            className="text-primary hover:underline"
+            onClick={() => {
+              setMode(mode === "password" ? "recovery" : "password");
+              setError("");
+            }}
+          >
+            {mode === "password" ? "Lost your authenticator? Use a recovery code" : "Back to password sign-in"}
+          </button>
         </p>
       </CardContent>
     </Card>

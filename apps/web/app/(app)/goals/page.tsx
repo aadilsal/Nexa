@@ -1,128 +1,42 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useAction, useMutation } from "convex/react";
 import Link from "next/link";
 import { useState } from "react";
 import { Plus, Target } from "lucide-react";
 import { toast } from "sonner";
 import { GoalDetailCard, type TrackedGoal } from "@/components/goals/goal-detail-card";
-import {
-  GoalFormDialog,
-  type GoalFormValues,
-} from "@/components/goals/goal-form-dialog";
+import { GoalFormDialog, type GoalFormValues } from "@/components/goals/goal-form-dialog";
 import { PageShell, StatStrip } from "@/components/layouts/surface";
 import { EmptyState } from "@/components/widgets/empty-state";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { api } from "@/lib/api";
-import { APP_QUERY_STALE } from "@/lib/prefetch-app-data";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { useSession } from "@/lib/session";
 import { useCurrency } from "@/lib/currency";
-import { FEATURE_HELP } from "@/lib/feature-help";
 import { track } from "@nexa/analytics/react";
 
-interface DashboardGoalsData {
-  goals: TrackedGoal[];
-  goalRisks: Array<{
-    goalId: string;
-    goalName: string;
-    riskLevel: "LOW" | "MEDIUM" | "HIGH";
-    riskScore: number;
-    factors: string[];
-  }>;
-}
-
 export default function GoalsPage() {
-  const queryClient = useQueryClient();
+  const { token } = useSession();
   const { formatAmount } = useCurrency();
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingGoal, setEditingGoal] = useState<TrackedGoal | null>(null);
   const [deleteGoal, setDeleteGoal] = useState<TrackedGoal | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: () => api<DashboardGoalsData>("/dashboard"),
-    staleTime: APP_QUERY_STALE.dashboard,
-  });
+  const data = useQuery(api.dashboard.get, token ? { sessionToken: token } : "skip");
+  const createGoal = useAction(api.goals.create);
+  const updateGoal = useAction(api.goals.update);
+  const removeGoal = useMutation(api.goals.remove);
 
-  const goals = data?.goals ?? [];
+  const goals = (data?.goals ?? []) as unknown as TrackedGoal[];
+  const goalRisks = data?.goalRisks ?? [];
+  const isLoading = data === undefined;
   const onTrackCount = goals.filter((goal) => goal.onTrack).length;
-
-  const invalidateGoals = () => {
-    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    queryClient.invalidateQueries({ queryKey: ["goals"] });
-  };
-
-  const createGoal = useMutation({
-    mutationFn: (values: GoalFormValues) =>
-      api("/goals", {
-        method: "POST",
-        body: JSON.stringify({
-          name: values.name,
-          targetAmount: values.targetAmount,
-          targetDate: values.targetDate,
-          priority: values.priority,
-        }),
-      }),
-    onSuccess: () => {
-      toast.success("Goal created");
-      track("goal_created");
-      setFormOpen(false);
-      invalidateGoals();
-    },
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Could not create goal"),
-  });
-
-  const updateGoal = useMutation({
-    mutationFn: ({
-      id,
-      values,
-    }: {
-      id: string;
-      values: GoalFormValues;
-    }) =>
-      api(`/goals/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          name: values.name,
-          targetAmount: values.targetAmount,
-          targetDate: values.targetDate,
-          priority: values.priority,
-        }),
-      }),
-    onSuccess: () => {
-      toast.success("Goal updated");
-      setFormOpen(false);
-      setEditingGoal(null);
-      invalidateGoals();
-    },
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Could not update goal"),
-  });
-
-  const removeGoal = useMutation({
-    mutationFn: (id: string) =>
-      api(`/goals/${id}`, {
-        method: "DELETE",
-      }),
-    onSuccess: () => {
-      toast.success("Goal deleted");
-      setDeleteGoal(null);
-      setEditingGoal(null);
-      invalidateGoals();
-    },
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Could not delete goal"),
-  });
 
   function openCreateDialog() {
     setFormMode("create");
@@ -137,19 +51,57 @@ export default function GoalsPage() {
   }
 
   async function handleFormSubmit(values: GoalFormValues) {
-    if (formMode === "create") {
-      await createGoal.mutateAsync(values);
-      return;
+    if (!token) return;
+    setIsSubmitting(true);
+    try {
+      if (formMode === "create") {
+        await createGoal({
+          sessionToken: token,
+          name: values.name,
+          targetAmount: values.targetAmount,
+          targetDate: new Date(values.targetDate).getTime(),
+          priority: values.priority,
+          currency: data?.currency ?? "PKR",
+        });
+        toast.success("Goal created");
+        track("goal_created");
+      } else if (editingGoal) {
+        await updateGoal({
+          sessionToken: token,
+          id: editingGoal.id as Id<"goals">,
+          name: values.name,
+          targetAmount: values.targetAmount,
+          targetDate: new Date(values.targetDate).getTime(),
+          priority: values.priority,
+        });
+        toast.success("Goal updated");
+      }
+      setFormOpen(false);
+      setEditingGoal(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save goal");
+    } finally {
+      setIsSubmitting(false);
     }
+  }
 
-    if (!editingGoal) return;
-    await updateGoal.mutateAsync({ id: editingGoal.id, values });
+  async function handleDelete(goal: TrackedGoal) {
+    if (!token) return;
+    setIsDeleting(true);
+    try {
+      await removeGoal({ sessionToken: token, id: goal.id as Id<"goals"> });
+      toast.success("Goal deleted");
+      setDeleteGoal(null);
+      setEditingGoal(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete goal");
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   const sortedGoals = [...goals].sort((a, b) => {
-    if (a.isEmergencyFund !== b.isEmergencyFund) {
-      return a.isEmergencyFund ? -1 : 1;
-    }
+    if (a.isEmergencyFund !== b.isEmergencyFund) return a.isEmergencyFund ? -1 : 1;
     return a.priority.localeCompare(b.priority);
   });
 
@@ -175,17 +127,13 @@ export default function GoalsPage() {
             items={[
               { label: "Active goals", value: String(goals.length) },
               { label: "On track", value: String(onTrackCount) },
-              {
-                label: "Needs attention",
-                value: String(goals.length - onTrackCount),
-              },
+              { label: "Needs attention", value: String(goals.length - onTrackCount) },
             ]}
           />
 
           <div className="space-y-5">
             {sortedGoals.map((goal) => {
-              const risk = data?.goalRisks.find((item) => item.goalId === goal.id);
-
+              const risk = goalRisks.find((item) => item.goalId === goal.id);
               return (
                 <GoalDetailCard
                   key={goal.id}
@@ -224,16 +172,11 @@ export default function GoalsPage() {
         isEmergencyFund={editingGoal?.isEmergencyFund}
         initialValues={
           editingGoal
-            ? {
-                name: editingGoal.name,
-                targetAmount: editingGoal.targetAmount,
-                targetDate: editingGoal.targetDate,
-                priority: editingGoal.priority,
-              }
+            ? { name: editingGoal.name, targetAmount: editingGoal.targetAmount, targetDate: editingGoal.targetDate, priority: editingGoal.priority }
             : undefined
         }
-        loading={createGoal.isPending || updateGoal.isPending}
-        deleteLoading={removeGoal.isPending}
+        loading={isSubmitting}
+        deleteLoading={isDeleting}
         onSubmit={handleFormSubmit}
         onDelete={
           formMode === "edit" && editingGoal
@@ -261,11 +204,7 @@ export default function GoalsPage() {
             <Button variant="outline" onClick={() => setDeleteGoal(null)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              loading={removeGoal.isPending}
-              onClick={() => deleteGoal && removeGoal.mutate(deleteGoal.id)}
-            >
+            <Button variant="destructive" loading={isDeleting} onClick={() => deleteGoal && void handleDelete(deleteGoal)}>
               Delete goal
             </Button>
           </DialogFooter>

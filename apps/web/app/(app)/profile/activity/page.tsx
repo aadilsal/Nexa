@@ -1,44 +1,25 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import {
-  PageShell,
-  SettingsGroup,
-  SettingsList,
-  SettingsListItem,
-} from "@/components/layouts/surface";
-import { api } from "@/lib/api";
+import { useQuery } from "convex/react";
+import { PageShell, SettingsGroup, SettingsList, SettingsListItem } from "@/components/layouts/surface";
+import { api } from "@/convex/_generated/api";
+import { useSession } from "@/lib/session";
 
 export default function ActivityPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["audit-logs"],
-    queryFn: () =>
-      api<{ logs: Array<{ id: string; action: string; createdAt: string }> }>(
-        "/audit-logs",
-      ),
-  });
+  const { token } = useSession();
+  const attempts = useQuery(api.auth.recentLoginAttempts, token ? { sessionToken: token } : "skip");
 
   return (
-    <PageShell
-      title="Activity log"
-      description="Recent security events on your account."
-      backHref="/profile"
-      backLabel="Profile"
-      narrow
-    >
-      <SettingsGroup label="Recent events">
-        {isLoading ? (
+    <PageShell title="Activity log" description="Recent sign-in activity on your account." backHref="/profile" backLabel="Profile" narrow>
+      <SettingsGroup label="Recent sign-ins">
+        {attempts === undefined ? (
           <div className="h-24 animate-pulse rounded-xl bg-muted/40" />
-        ) : data?.logs.length ? (
+        ) : attempts.length ? (
           <SettingsList>
-            {data.logs.map((log) => (
-              <SettingsListItem key={log.id}>
-                <span className="font-medium">
-                  {log.action.replace(/_/g, " ")}
-                </span>
-                <span className="text-muted-foreground">
-                  {new Date(log.createdAt).toLocaleString()}
-                </span>
+            {attempts.map((a) => (
+              <SettingsListItem key={a.id}>
+                <span className="font-medium">{a.success ? "Signed in" : "Failed sign-in attempt"}</span>
+                <span className="text-muted-foreground">{new Date(a.createdAt).toLocaleString()}</span>
               </SettingsListItem>
             ))}
           </SettingsList>

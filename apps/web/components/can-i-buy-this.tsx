@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useMutation } from "@tanstack/react-query";
+import { useAction } from "convex/react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -30,7 +30,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { CurrencySelect } from "@/components/currency-select";
-import { api } from "@/lib/api";
+import { api } from "@/convex/_generated/api";
+import { useSession } from "@/lib/session";
 import { useCurrency } from "@/lib/currency";
 import { track } from "@nexa/analytics/react";
 import { cn } from "@/lib/utils";
@@ -64,9 +65,12 @@ function resetFormState(
 }
 
 export function CanIBuyThis() {
+  const { token } = useSession();
   const { primaryCurrency, formatAmount } = useCurrency();
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<SimulationResult | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const simulate = useAction(api.simulations.purchase);
 
   const {
     register,
@@ -83,23 +87,24 @@ export function CanIBuyThis() {
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: (data: PurchaseSimulationFormInput) =>
-      api<SimulationResult>("/simulations/purchase", {
-        method: "POST",
-        body: JSON.stringify({
-          itemName: data.itemName,
-          amount: Number(data.amount),
-          currency: data.currency ?? primaryCurrency,
-        }),
-      }),
-    onSuccess: (data) => {
-      setResult(data);
-      track("simulation_run", { recommendation: data.recommendation });
-    },
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Simulation failed"),
-  });
+  async function onSubmit(data: PurchaseSimulationFormInput) {
+    if (!token) return;
+    setIsPending(true);
+    try {
+      const response = await simulate({
+        sessionToken: token,
+        itemName: data.itemName,
+        amount: Number(data.amount),
+        currency: data.currency ?? primaryCurrency,
+      });
+      setResult(response as unknown as SimulationResult);
+      track("simulation_run", { recommendation: response.recommendation });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Simulation failed");
+    } finally {
+      setIsPending(false);
+    }
+  }
 
   const isGoAhead = result?.recommendation === "GO_AHEAD";
   const safeToSpendImpact = result
@@ -140,7 +145,7 @@ export function CanIBuyThis() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              onSubmit={handleSubmit((data) => mutation.mutate(data))}
+              onSubmit={handleSubmit(onSubmit)}
               className="space-y-4 pt-2"
               noValidate
             >
@@ -189,9 +194,9 @@ export function CanIBuyThis() {
               <Button
                 type="submit"
                 className="h-11 w-full"
-                loading={mutation.isPending}
+                loading={isPending}
               >
-                {mutation.isPending ? "Analyzing…" : "Analyze purchase"}
+                {isPending ? "Analyzing…" : "Analyze purchase"}
               </Button>
             </motion.form>
           ) : (

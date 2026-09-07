@@ -1,89 +1,57 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
+import { useState } from "react";
+import { useAction } from "convex/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  PageShell,
-  SettingsGroup,
-  SettingsList,
-  SettingsListItem,
-  SettingsRow,
-} from "@/components/layouts/surface";
-import { api } from "@/lib/api";
-import { authClient } from "@/lib/auth-client";
+import { PasswordInput } from "@/components/ui/password-input";
+import { FormField } from "@/components/ui/form-field";
+import { PageShell, SettingsGroup, SettingsRow } from "@/components/layouts/surface";
+import { api } from "@/convex/_generated/api";
+import { useSession } from "@/lib/session";
+
+// Single-owner app: no passkeys, no email-based reset — a recovery code (given once at
+// setup) is the account-recovery path instead. This page only handles a normal
+// know-your-current-password change.
 
 export default function SecurityPage() {
-  const queryClient = useQueryClient();
+  const { token } = useSession();
+  const changePassword = useAction(api.auth.changePassword);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: profile } = useQuery({
-    queryKey: ["profile"],
-    queryFn: () =>
-      api<{ passkeys: Array<{ id: string; name: string | null; createdAt: string }> }>(
-        "/users/me",
-      ),
-  });
-
-  const addPasskey = useMutation({
-    mutationFn: async () => {
-      await authClient.passkey.addPasskey({ name: "This device" });
-    },
-    onSuccess: () => {
-      toast.success("Passkey added");
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
-    },
-    onError: () => toast.error("Failed to add passkey"),
-  });
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    setIsSubmitting(true);
+    try {
+      await changePassword({ sessionToken: token, currentPassword, newPassword });
+      toast.success("Password updated");
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update password");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
-    <PageShell
-      title="Security"
-      description="Sign in with Face ID, fingerprint, or device PIN."
-      backHref="/profile"
-      backLabel="Profile"
-      narrow
-    >
-      <SettingsGroup
-        label="Passkeys"
-        description="Faster, more secure sign-in on this device."
-      >
+    <PageShell title="Security" description="Change your account password." backHref="/profile" backLabel="Profile" narrow>
+      <SettingsGroup label="Password">
         <SettingsRow>
-          <Button
-            onClick={() => addPasskey.mutate()}
-            disabled={addPasskey.isPending}
-          >
-            {addPasskey.isPending ? "Adding…" : "Add passkey"}
-          </Button>
-        </SettingsRow>
-        {profile?.passkeys.length ? (
-          <SettingsList>
-            {profile.passkeys.map((pk) => (
-              <SettingsListItem key={pk.id}>
-                <span className="font-medium">{pk.name ?? "Passkey"}</span>
-                <span className="text-muted-foreground">
-                  {pk.createdAt
-                    ? new Date(pk.createdAt).toLocaleDateString()
-                    : ""}
-                </span>
-              </SettingsListItem>
-            ))}
-          </SettingsList>
-        ) : (
-          <p className="py-2 text-sm text-muted-foreground">
-            No passkeys yet.
-          </p>
-        )}
-      </SettingsGroup>
-
-      <SettingsGroup
-        label="Password"
-        description="Reset your password via email. Other sessions will be signed out."
-      >
-        <SettingsRow>
-          <Link href="/forgot-password">
-            <Button variant="outline">Reset password</Button>
-          </Link>
+          <form onSubmit={onSubmit} className="space-y-3" noValidate>
+            <FormField label="Current password" htmlFor="current-password">
+              <PasswordInput id="current-password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+            </FormField>
+            <FormField label="New password" htmlFor="new-password">
+              <PasswordInput id="new-password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={12} required />
+            </FormField>
+            <Button type="submit" loading={isSubmitting}>
+              Update password
+            </Button>
+          </form>
         </SettingsRow>
       </SettingsGroup>
     </PageShell>
