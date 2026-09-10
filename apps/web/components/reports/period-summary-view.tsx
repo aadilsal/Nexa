@@ -4,7 +4,6 @@ import { useQuery } from "convex/react";
 import { ContentSection, StatStrip } from "@/components/layouts/surface";
 import { CategoryBreakdownList } from "@/components/reports/category-breakdown-list";
 import { SpendingTrendChart } from "@/components/reports/spending-trend-chart";
-import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import { useSession } from "@/lib/session";
 import { useCurrency } from "@/lib/currency";
@@ -12,19 +11,11 @@ import { cn } from "@/lib/utils";
 import { CATEGORY_LABELS, type Category } from "@nexa/shared";
 import type { ReportPeriod } from "@/lib/report-period";
 
-function formatPeriodRange(start: string, end: string, period: ReportPeriod) {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  if (period === "year") return startDate.getFullYear().toString();
-  if (period === "month") return startDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
-  return `${startDate.toLocaleDateString()} – ${endDate.toLocaleDateString()}`;
-}
-
-export function PeriodSummaryView({ period }: { period: ReportPeriod }) {
+export function PeriodSummaryView({ period, date }: { period: ReportPeriod; date?: number }) {
   const { token } = useSession();
   const { formatAmount } = useCurrency();
 
-  const data = useQuery(api.reports.getSummary, token ? { sessionToken: token, period } : "skip");
+  const data = useQuery(api.reports.getSummary, token ? { sessionToken: token, period, date } : "skip");
 
   if (data === undefined) {
     return (
@@ -40,7 +31,6 @@ export function PeriodSummaryView({ period }: { period: ReportPeriod }) {
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{formatPeriodRange(data.periodStart, data.periodEnd, period)}</p>
         <StatStrip
           items={[
             { label: "Income", value: formatAmount(data.income) },

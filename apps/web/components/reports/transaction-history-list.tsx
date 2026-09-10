@@ -23,7 +23,7 @@ const FILTER_LABELS: Record<CategoryFilter, string> = {
   ...CATEGORY_LABELS,
 };
 
-export function TransactionHistoryList({ period }: { period: ReportPeriod }) {
+export function TransactionHistoryList({ period, date }: { period: ReportPeriod; date?: number }) {
   const { token } = useSession();
   const { formatAmount } = useCurrency();
   const [category, setCategory] = useState<CategoryFilter>("ALL");
@@ -31,7 +31,7 @@ export function TransactionHistoryList({ period }: { period: ReportPeriod }) {
 
   const data = useQuery(
     api.transactions.history,
-    token ? { sessionToken: token, period, page, pageSize: 25, category: category === "ALL" ? undefined : category } : "skip",
+    token ? { sessionToken: token, period, date, page, pageSize: 25, category: category === "ALL" ? undefined : category } : "skip",
   );
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;

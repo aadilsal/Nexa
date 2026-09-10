@@ -36,3 +36,5 @@ apps/api/prisma/migrations/**/migration_lock.toml
 
 # Docker
 docker/pgdata
+.vercel
+.env*
