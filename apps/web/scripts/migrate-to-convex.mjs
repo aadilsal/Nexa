@@ -27,8 +27,11 @@ function envVar(name) {
 process.env.DATABASE_URL = envVar("DATABASE_URL");
 const OLD_KEK_HEX = envVar("KEK");
 
-const convexEnvLocal = readFileSync(new URL("../.env.local", import.meta.url), "utf8");
-const CONVEX_URL = convexEnvLocal.match(/^NEXT_PUBLIC_CONVEX_URL=(.+)$/m)[1].trim();
+const CONVEX_URL =
+  process.env.CONVEX_URL_OVERRIDE?.trim() ??
+  readFileSync(new URL("../.env.local", import.meta.url), "utf8").match(
+    /^NEXT_PUBLIC_CONVEX_URL=(.+)$/m,
+  )[1].trim();
 
 const OWNER_EMAIL = process.env.MIGRATE_OWNER_EMAIL ?? "aadilsalman786@gmail.com";
 
@@ -36,20 +39,25 @@ const prisma = new PrismaClient();
 const convex = new ConvexHttpClient(CONVEX_URL);
 
 // --- Node-side AES-256-GCM, matching the old encryption.service.ts wire format exactly ---
-function nodeDecrypt(payloadB64, keyBytes) {
+// Raw-bytes variant (no utf8 round-trip) — required for the DEK, which is random binary,
+// not text. Using nodeDecrypt's .toString("utf8") on it corrupts the bytes.
+function nodeDecryptRaw(payloadB64, keyBytes) {
   const buf = Buffer.from(payloadB64, "base64");
   const iv = buf.subarray(0, 12);
   const authTag = buf.subarray(12, 28);
   const ciphertext = buf.subarray(28);
   const decipher = createDecipheriv("aes-256-gcm", keyBytes, iv);
   decipher.setAuthTag(authTag);
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+}
+
+function nodeDecrypt(payloadB64, keyBytes) {
+  return nodeDecryptRaw(payloadB64, keyBytes).toString("utf8");
 }
 
 function unwrapOldDek(encryptedDekB64, oldKekHex) {
   const kekBytes = Buffer.from(oldKekHex, "hex");
-  const dekB64 = nodeDecrypt(encryptedDekB64, kekBytes);
-  return Buffer.from(dekB64, "base64");
+  return nodeDecryptRaw(encryptedDekB64, kekBytes);
 }
 
 async function main() {

@@ -9,6 +9,7 @@ import { api } from "../convex/_generated/api.js";
 import { readFileSync } from "node:fs";
 
 function readConvexUrlFromEnvLocal() {
+  if (process.env.CONVEX_URL_OVERRIDE) return process.env.CONVEX_URL_OVERRIDE.trim();
   const contents = readFileSync(new URL("../.env.local", import.meta.url), "utf8");
   const match = contents.match(/^NEXT_PUBLIC_CONVEX_URL=(.+)$/m);
   if (!match) throw new Error("NEXT_PUBLIC_CONVEX_URL not found in apps/web/.env.local");
