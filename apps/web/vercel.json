@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm --filter @nexa/shared build && pnpm --filter @nexa/analytics build && pnpm --filter @nexa/emails build && pnpm --filter @nexa/web build",
+  "buildCommand": "cd ../.. && pnpm --filter @nexa/shared build && pnpm --filter @nexa/analytics build && pnpm --filter @nexa/emails build && pnpm --filter @nexa/finance-engine build && pnpm --filter @nexa/web build",
   "framework": "nextjs"
 }
