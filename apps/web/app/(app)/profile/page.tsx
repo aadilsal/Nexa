@@ -98,7 +98,7 @@ export default function ProfilePage() {
     }
   }
 
-  async function saveSettings(body: { timezone?: string; primaryCurrency?: string; weeklyReviewEmail?: boolean }) {
+  async function saveSettings(body: { timezone?: string; primaryCurrency?: string }) {
     if (!token) return;
     try {
       await updateSettings({ sessionToken: token, ...body });
@@ -142,7 +142,7 @@ export default function ProfilePage() {
                     Save
                   </Button>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">Used for daily Safe To Spend resets and weekly review timing.</p>
+                <p className="mt-2 text-xs text-muted-foreground">Used for daily Safe To Spend resets.</p>
               </FormField>
             </form>
           </SettingsRow>
@@ -158,20 +158,10 @@ export default function ProfilePage() {
               </FormField>
             </form>
           </SettingsRow>
-          <SettingsRow>
-            <label className="flex cursor-pointer items-center gap-3 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-input"
-                defaultChecked={profile.weeklyReviewEmail}
-                onChange={(e) => saveSettings({ weeklyReviewEmail: e.target.checked })}
-              />
-              Send weekly review emails
-            </label>
-          </SettingsRow>
         </SettingsGroup>
 
         <SettingsGroup label="Security & data">
+          <SettingsLinkRow href="/profile/auto-import" title="Auto-import" description="Log spending from bank SMS and emails" />
           <SettingsLinkRow href="/profile/data" title="Data & privacy" description="Export your data" />
           <SettingsLinkRow href="/profile/activity" title="Activity log" description="Recent sign-in activity on your account" />
         </SettingsGroup>

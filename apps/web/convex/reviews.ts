@@ -1,14 +1,12 @@
 import { v } from "convex/values";
-import { action, internalAction } from "./_generated/server";
+import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { calculateWeeklyReview, calculateMonthlyReview, getCalendarWeekBounds, type WeeklyReviewOutput, type MonthlyReviewOutput } from "@nexa/finance-engine";
-import * as groq from "./lib/groq";
+import * as claude from "./lib/claude";
 import type { SerializedEngineInput, EngineOutputWithCurrency } from "./engine";
 
-// Ported from apps/api/src/modules/reviews/reviews.service.ts, simplified: the React-Email
-// template rendering (@nexa/emails) is dropped in favor of a plain HTML string built here —
-// out of scope for today's cutover given Convex's default runtime's React-rendering support
-// is unverified; a plain email is a reasonable v1 vs. the visual polish of the old template.
+// Ported from apps/api/src/modules/reviews/reviews.service.ts. Weekly/monthly reviews for the
+// Reports pages; AI summaries are cached per period per day (see lib/claude.ts cachedExplain).
 
 function reconstruct(serialized: SerializedEngineInput) {
   return {
@@ -75,10 +73,12 @@ export const getWeeklyReview = action({
       healthScoreAtWeekEnd: output.healthScore.overall,
     });
 
-    const narrative = await groq.explain(
+    const narrative = await claude.cachedExplain(
+      ctx,
+      "weekly-review",
       { ...review, savingsRatePercent: Math.round(review.savingsRate * 100) },
       "Write a concise weekly financial review summary for the user.",
-      500,
+      { week: review.weekStart, day: claude.todayKey() },
     );
 
     return { review, narrative };
@@ -111,70 +111,7 @@ export const getMonthlyReview = action({
       netCashFlow: output.cash.currentCashAvailable - engineInput.cycle.startingBalance,
     });
 
-    const narrative = await groq.explain(review, "Write a concise monthly financial review summary for the user.", 600);
+    const narrative = await claude.cachedExplain(ctx, "monthly-review", review, "Write a concise monthly financial review summary for the user.", claude.todayKey());
     return { review, narrative };
-  },
-});
-
-async function sendViaResend(to: string, subject: string, html: string, text: string) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return { sent: false, reason: "RESEND_API_KEY not configured" };
-  const from = process.env.RESEND_FROM ?? "Nexa <onboarding@resend.dev>";
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to, subject, html, text }),
-  });
-  return { sent: response.ok, reason: response.ok ? undefined : `Resend returned ${response.status}` };
-}
-
-/** Called by the weekly cron (crons.ts) — single-owner, so no user loop needed. */
-export const sendWeeklyReviewEmail = internalAction({
-  args: {},
-  handler: async (ctx): Promise<{ sent: boolean; reason?: string }> => {
-    const settingsRow = await ctx.runQuery(internal.settings._getRaw, {});
-    if (settingsRow && settingsRow.weeklyReviewEmail === false) return { sent: false, reason: "disabled" };
-
-    const serialized = await getSerialized(ctx);
-    if (!serialized) return { sent: false, reason: "no active cycle" };
-
-    // Reuse the same building blocks as the on-demand action, without a session token
-    // (the cron runs unauthenticated, server-side, on the single owner's own data).
-    const engineInput = reconstruct(serialized);
-    const output: EngineOutputWithCurrency | null = await ctx.runQuery(internal.engine._calculateOutputAtCutoff, { cutoff: Date.now() });
-    if (!output) return { sent: false, reason: "no active cycle" };
-
-    const timezone = "Asia/Karachi";
-    const lastWeekRef = new Date();
-    lastWeekRef.setDate(lastWeekRef.getDate() - 7);
-    const { weekStart, weekEnd } = getCalendarWeekBounds(lastWeekRef, timezone);
-    const allTransactions = [...engineInput.transactions, ...engineInput.historicalCycles.flatMap((c: (typeof engineInput.historicalCycles)[number]) => c.transactions)];
-    const weekTransactions = allTransactions.filter((t) => t.createdAt >= weekStart && t.createdAt <= weekEnd);
-    const outputAtWeekStart: EngineOutputWithCurrency | null = await ctx.runQuery(internal.engine._calculateOutputAtCutoff, { cutoff: weekStart.getTime() });
-
-    const review = calculateWeeklyReview({
-      timezone, weekStart, weekEnd,
-      transactions: weekTransactions,
-      priorWeekTransactions: [],
-      goals: engineInput.goals,
-      goalsAtWeekStart: engineInput.goals,
-      expectedIncome: engineInput.expectedIncome,
-      predictedMonthlyExpenses: output.expenses.predictedMonthly,
-      savingsRateTarget: output.savings.targetRate,
-      safeToSpendAtWeekStart: outputAtWeekStart?.safeToSpend.today,
-      safeToSpendAtWeekEnd: output.safeToSpend.today,
-      healthScoreAtWeekStart: outputAtWeekStart?.healthScore.overall,
-      healthScoreAtWeekEnd: output.healthScore.overall,
-    });
-    const narrative = await groq.explain(review, "Write a concise weekly financial review summary.", 500);
-
-    const html = `<h1>Your weekly review</h1><p>${narrative}</p>
-      <p>Income: ${output.currency} ${review.income}<br/>Spent: ${output.currency} ${review.spent}<br/>Saved: ${output.currency} ${review.saved}</p>
-      <p>Health score: ${review.healthScoreChange.end ?? "-"}/100</p>`;
-    const text = `Your weekly review\n\n${narrative}\n\nIncome: ${review.income}\nSpent: ${review.spent}\nSaved: ${review.saved}`;
-
-    const to = process.env.OWNER_EMAIL ?? "";
-    if (!to) return { sent: false, reason: "OWNER_EMAIL not configured" };
-    return sendViaResend(to, `Your Nexa weekly review — ${review.overallRating}`, html, text);
   },
 });

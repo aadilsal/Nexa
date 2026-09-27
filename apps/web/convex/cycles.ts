@@ -179,6 +179,14 @@ export const ensureCurrentCycle = action({
   args: { sessionToken: v.string() },
   handler: async (ctx, { sessionToken }): Promise<{ cycleId: Id<"financialCycles"> }> => {
     await ctx.runQuery(internal.lib.session._requireSession, { sessionToken });
+    return ensureCurrentCycleImpl(ctx);
+  },
+});
+
+/** Session-free core of ensureCurrentCycle — callers must authenticate first (the automatic
+ *  bank-message import authenticates with its own ingest token instead of a session). */
+export async function ensureCurrentCycleImpl(ctx: ActionCtx): Promise<{ cycleId: Id<"financialCycles"> }> {
+  {
     const dek = await getOrCreateDekForAction(ctx);
     const cycle = await ctx.runQuery(internal.cycles._getActiveOrPending, {});
 
@@ -235,8 +243,8 @@ export const ensureCurrentCycle = action({
       encryptedStartingBalance: await encryptNumber(fallbackBalance, dek),
     });
     return { cycleId: newId };
-  },
-});
+  }
+}
 
 export const confirmRollover = mutation({
   args: { sessionToken: v.string() },

@@ -226,6 +226,37 @@ export default defineSchema({
     .index("by_phone", ["phoneNumberHash"])
     .index("by_expiresAt", ["expiresAt"]),
 
+  // ─── Automatic import of bank/wallet alerts (iPhone Shortcut SMS + Gmail script) ───
+  ingestConfig: defineTable({
+    tokenHash: v.string(), // sha256 of the bearer token; the raw token is shown once
+    ownerAliases: v.array(v.string()), // names your own accounts appear under — skipped
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+  }),
+
+  // One row per received message. No message text or plaintext amounts are stored:
+  // messageHash dedupes exact repeats, matchKey (sha256 of type+amount) dedupes the same
+  // transaction arriving twice (SMS + email, or a bank's double alert) within minutes.
+  ingestedMessages: defineTable({
+    source: v.union(v.literal("sms"), v.literal("email")),
+    messageHash: v.string(),
+    status: v.union(v.literal("LOGGED"), v.literal("IGNORED"), v.literal("DUPLICATE")),
+    reason: v.optional(v.string()),
+    matchKey: v.optional(v.string()),
+    eventId: v.optional(v.id("transactionEvents")),
+    createdAt: v.number(),
+  })
+    .index("by_messageHash", ["messageHash"])
+    .index("by_matchKey", ["matchKey", "createdAt"])
+    .index("by_createdAt", ["createdAt"]),
+
+  // ─── Cached AI explanations (keyed by sha256 of scope + question + data) ───
+  aiCache: defineTable({
+    key: v.string(),
+    text: v.string(),
+    createdAt: v.number(),
+  }).index("by_key", ["key"]),
+
   // ─── Rate limiting (replaces Redis INCR+EXPIRE) ────────────────────────
   rateLimitCounters: defineTable({
     key: v.string(), // e.g. "login", "export", "ai"

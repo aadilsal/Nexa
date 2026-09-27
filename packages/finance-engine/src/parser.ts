@@ -91,7 +91,7 @@ function extractAmount(
   return null;
 }
 
-function matchCategory(description: string): { category: Category; confidence: number } {
+export function matchCategory(description: string): { category: Category; confidence: number } {
   const normalized = description.toLowerCase().trim();
 
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {

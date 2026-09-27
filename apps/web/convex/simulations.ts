@@ -3,7 +3,6 @@ import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { simulatePurchase, type EngineInput, type PurchaseSimulationOutput } from "@nexa/finance-engine";
 import { normalizeCurrency } from "@nexa/shared";
-import * as groq from "./lib/groq";
 import type { SerializedEngineInput } from "./engine";
 
 // Ported from apps/api/src/modules/simulations/simulations.service.ts ("can I buy this?").
@@ -52,19 +51,18 @@ export const purchase = action({
       purchaseDate: purchaseDate ? new Date(purchaseDate) : undefined,
     });
 
-    const explanation = await groq.explain(
-      {
-        itemName,
-        amount: amountInPrimary,
-        currency: primaryCurrency,
-        recommendation: result.recommendation,
-        triggeredRule: result.triggeredRule,
-        impacts: result.impacts,
-        suggestedWaitUntil: result.suggestedWaitUntil,
-      },
-      `Explain why the recommendation is ${result.recommendation} for buying ${itemName} at ${primaryCurrency} ${amountInPrimary}.`,
-      500,
-    );
+    // Deterministic explanation from the rule that fired — no AI call needed for a verdict the
+    // engine already reasoned out.
+    const worstGoal = [...result.impacts.goalDelays].sort((a, b) => b.delayDays - a.delayDays)[0];
+    const reasons: Record<string, string> = {
+      R1: "It would leave your emergency fund below 3 months of expenses.",
+      R2: worstGoal ? `It would push your "${worstGoal.goalName}" goal back by ${worstGoal.delayDays} days.` : "It would delay one of your goals by more than a month.",
+      R3: "It would drop your savings rate below your target this cycle.",
+      R5: "It's more than you have left to spend this cycle.",
+      R4: "It fits your budget without hurting your savings or goals.",
+    };
+    const wait = result.suggestedWaitUntil ? ` Waiting until ${new Date(result.suggestedWaitUntil).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} would make it safe.` : "";
+    const explanation = `${reasons[result.triggeredRule ?? "R4"]}${result.recommendation === "WAIT" ? wait : ""}`;
 
     return { ...result, explanation, currency: primaryCurrency };
   },

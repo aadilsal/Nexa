@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
-import * as groq from "./lib/groq";
+import * as claude from "./lib/claude";
 
-// Ported from apps/api/src/modules/{ai,insights}/*.ts, condensed (see lib/groq.ts for what
+// Ported from apps/api/src/modules/{ai,insights}/*.ts, condensed (see lib/claude.ts for what
 // was dropped). Rate limiting on AI calls is dropped for the single-owner app.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,7 +29,7 @@ export const insight = action({
   handler: async (ctx, { sessionToken }) => {
     const output = await ctx.runQuery(api.engine.get, { sessionToken });
     if (!output) return { insight: "Set up your first financial cycle to unlock insights." };
-    const text = await groq.explain(slimOutput(output), "Write today's brief financial insight.", 500);
+    const text = await claude.cachedExplain(ctx, "daily-insight", slimOutput(output), "Write today's brief financial insight.", claude.todayKey());
     return { insight: text };
   },
 });
@@ -42,7 +42,7 @@ export const chat = action({
   },
   handler: async (ctx, { sessionToken, message, history }) => {
     const output = await ctx.runQuery(api.engine.get, { sessionToken });
-    const reply = await groq.chat(output ? slimOutput(output) : { note: "No active cycle yet." }, message, history ?? []);
+    const reply = await claude.chat(output ? slimOutput(output) : { note: "No active cycle yet." }, message, history ?? []);
     return { reply };
   },
 });

@@ -1,6 +1,9 @@
 export { parseTransactionInput } from "./parser.js";
 export type { ParsedTransactionResult } from "./parser.js";
 
+export { parseBankMessage } from "./bank-message.js";
+export type { BankMessageResult, BankMessageOptions } from "./bank-message.js";
+
 export {
   calculateCashPosition,
   calculatePredictedMonthlyExpenses,

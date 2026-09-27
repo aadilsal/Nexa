@@ -16,6 +16,7 @@
     "schema": "../api/prisma/schema.prisma"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@better-auth/passkey": "^1.6.23",
     "@hookform/resolvers": "^5.1.1",
     "@nexa/analytics": "workspace:*",
