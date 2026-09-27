@@ -14,6 +14,14 @@ import { cn } from "@/lib/utils";
 
 const num = (s: string) => (s.trim() === "" ? 0 : Number(s) || 0);
 
+type IncomeType = "salary" | "export" | "business" | "manual";
+const INCOME_TYPES: Array<{ value: IncomeType; label: string }> = [
+  { value: "salary", label: "Salary" },
+  { value: "export", label: "Foreign freelance" },
+  { value: "business", label: "Business" },
+  { value: "manual", label: "Enter myself" },
+];
+
 function Toggle({ label, hint, checked, onChange }: { label: string; hint: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className="flex min-h-14 cursor-pointer items-center gap-3 py-3">
@@ -32,6 +40,7 @@ export default function TaxPage() {
   const data = useQuery(api.planning.getTax, token ? { sessionToken: token } : "skip");
   const saveTax = useAction(api.planning.saveTax);
 
+  const [incomeType, setIncomeType] = useState<IncomeType>("salary");
   const [salary, setSalary] = useState("");
   const [business, setBusiness] = useState("");
   const [exportIncome, setExportIncome] = useState("");
@@ -42,8 +51,9 @@ export default function TaxPage() {
 
   useEffect(() => {
     if (loaded || data === undefined) return;
-    const i = data.inputs as { salaryIncome?: number; businessIncome?: number; itExportIncome?: number; psebRegistered?: boolean; filer?: boolean } | null;
+    const i = data.inputs as { autoIncomeType?: IncomeType; salaryIncome?: number; businessIncome?: number; itExportIncome?: number; psebRegistered?: boolean; filer?: boolean } | null;
     if (i) {
+      if (i.autoIncomeType) setIncomeType(i.autoIncomeType);
       setSalary(i.salaryIncome ? String(i.salaryIncome) : "");
       setBusiness(i.businessIncome ? String(i.businessIncome) : "");
       setExportIncome(i.itExportIncome ? String(i.itExportIncome) : "");
@@ -53,11 +63,19 @@ export default function TaxPage() {
     setLoaded(true);
   }, [data, loaded]);
 
-  const inputs = { salaryIncome: num(salary), businessIncome: num(business), itExportIncome: num(exportIncome), psebRegistered: pseb, filer };
-  const result = calculateIncomeTax({ ...inputs, taxYear: data?.taxYear });
+  // Automatic: Nexa's projected income for the tax year goes into the chosen bucket; the manual
+  // fields add income Nexa doesn't track (or are everything, in manual mode).
+  const projected = incomeType === "manual" ? 0 : (data?.projectedAnnualIncome ?? 0);
+  const inputs = { autoIncomeType: incomeType, salaryIncome: num(salary), businessIncome: num(business), itExportIncome: num(exportIncome), psebRegistered: pseb, filer };
+  const totals = {
+    salaryIncome: inputs.salaryIncome + (incomeType === "salary" ? projected : 0),
+    businessIncome: inputs.businessIncome + (incomeType === "business" ? projected : 0),
+    itExportIncome: inputs.itExportIncome + (incomeType === "export" ? projected : 0),
+  };
+  const result = calculateIncomeTax({ ...totals, psebRegistered: pseb, filer, taxYear: data?.taxYear });
   const table = TAX_TABLES[result.taxYear]!;
   const slabs = result.regime === "salaried" ? table.salaried : table.nonSalaried;
-  const taxable = inputs.salaryIncome + inputs.businessIncome;
+  const taxable = totals.salaryIncome + totals.businessIncome;
 
   async function save() {
     if (!token) return;
@@ -97,42 +115,62 @@ export default function TaxPage() {
       </section>
 
       <section className="mt-6">
-        <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Your yearly income</h2>
+        <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Your income (automatic)</h2>
         <div className="divide-y divide-border rounded-2xl bg-card px-4 shadow-card">
-          <label className="block py-3">
-            <span className="text-sm font-medium">Salary</span>
-            <span className="block text-xs text-muted-foreground">Taxable salary from an employer, for the whole year.</span>
-            <Input type="number" inputMode="numeric" min={0} value={salary} onChange={(e) => setSalary(e.target.value)} className="mt-2 h-11" placeholder="0" />
-          </label>
-          <label className="block py-3">
-            <span className="text-sm font-medium">Business & other income</span>
-            <span className="block text-xs text-muted-foreground">Local freelance, business profit, rent — not foreign IT income.</span>
-            <Input type="number" inputMode="numeric" min={0} value={business} onChange={(e) => setBusiness(e.target.value)} className="mt-2 h-11" placeholder="0" />
-          </label>
-          <label className="block py-3">
-            <span className="text-sm font-medium">IT export / freelance (foreign)</span>
-            <span className="block text-xs text-muted-foreground">Foreign clients paid into your Pakistani bank — taxed separately under section 154A.</span>
-            <Input type="number" inputMode="numeric" min={0} value={exportIncome} onChange={(e) => setExportIncome(e.target.value)} className="mt-2 h-11" placeholder="0" />
-          </label>
-          {data && data.projectedAnnualIncome > 0 ? (
+          <div className="py-3">
+            <p className="text-sm font-medium">What is your income from?</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {INCOME_TYPES.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setIncomeType(t.value)}
+                  aria-pressed={incomeType === t.value}
+                  className={cn("min-h-11 rounded-xl border px-3 text-sm font-medium", incomeType === t.value ? "border-primary bg-primary-muted text-primary" : "border-border text-muted-foreground")}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {incomeType !== "manual" && data ? (
             <div className="py-3 text-sm">
-              <p className="text-muted-foreground">
-                Nexa has {formatAmount(data.incomeSoFar)} income logged this tax year — about {formatAmount(data.projectedAnnualIncome)} for the full year.
-              </p>
-              <div className="mt-2 flex flex-wrap gap-3">
-                <button type="button" className="font-medium text-primary" onClick={() => setSalary(String(data.projectedAnnualIncome))}>
-                  Use as salary
-                </button>
-                <button type="button" className="font-medium text-primary" onClick={() => setExportIncome(String(data.projectedAnnualIncome))}>
-                  Use as IT export
-                </button>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-medium">Projected income this tax year</span>
+                <span className="font-semibold tabular-nums">{formatAmount(data.projectedAnnualIncome)}</span>
               </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                From {formatAmount(data.incomeSoFar)} logged since 1 July, projected to 30 June. Updates as income comes in.
+              </p>
             </div>
           ) : null}
           <Toggle label="PSEB registered" hint="0.25% final tax on IT exports instead of 1%." checked={pseb} onChange={setPseb} />
           <Toggle label="Active taxpayer (filer)" hint="On FBR's Active Taxpayers List. Non-filers pay double on exports." checked={filer} onChange={setFiler} />
         </div>
       </section>
+
+      <details className="mt-6 rounded-2xl bg-card px-4 shadow-card" open={incomeType === "manual"}>
+        <summary className="flex min-h-12 cursor-pointer items-center text-sm font-semibold">
+          {incomeType === "manual" ? "Your yearly income" : "Add income Nexa doesn't track"}
+        </summary>
+        <div className="divide-y divide-border pb-2">
+          <label className="block py-3">
+            <span className="text-sm font-medium">Salary</span>
+            <span className="block text-xs text-muted-foreground">Taxable salary from an employer, per year.</span>
+            <Input type="number" inputMode="numeric" min={0} value={salary} onChange={(e) => setSalary(e.target.value)} className="mt-2 h-11" placeholder="0" />
+          </label>
+          <label className="block py-3">
+            <span className="text-sm font-medium">Business & other income</span>
+            <span className="block text-xs text-muted-foreground">Local freelance, business profit, rent — per year.</span>
+            <Input type="number" inputMode="numeric" min={0} value={business} onChange={(e) => setBusiness(e.target.value)} className="mt-2 h-11" placeholder="0" />
+          </label>
+          <label className="block py-3">
+            <span className="text-sm font-medium">IT export / freelance (foreign)</span>
+            <span className="block text-xs text-muted-foreground">Foreign clients paid into a Pakistani bank — section 154A, per year.</span>
+            <Input type="number" inputMode="numeric" min={0} value={exportIncome} onChange={(e) => setExportIncome(e.target.value)} className="mt-2 h-11" placeholder="0" />
+          </label>
+        </div>
+      </details>
 
       <section className="mt-6">
         <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Breakdown</h2>
@@ -156,7 +194,7 @@ export default function TaxPage() {
             <span className="tabular-nums">{formatAmount(result.totalTax)}</span>
           </div>
         </div>
-        {inputs.salaryIncome > 0 && inputs.businessIncome > 0 ? (
+        {totals.salaryIncome > 0 && totals.businessIncome > 0 ? (
           <p className="mt-2 px-1 text-xs text-muted-foreground">Salaried rates only apply when salary is more than 75% of your taxable income.</p>
         ) : null}
       </section>

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { ChevronRight, Sparkles, Target } from "lucide-react";
+import { ChevronRight, Target } from "lucide-react";
 import { CATEGORY_LABELS, type Category } from "@nexa/shared";
 import { Button } from "@/components/ui/button";
 import { StatStrip } from "@/components/layouts/surface";
@@ -43,7 +43,6 @@ export default function DashboardPage() {
   const { token, isLoading: sessionLoading, isAuthenticated } = useSession();
   const ensureCycle = useAction(api.cycles.ensureCurrentCycle);
   const confirmRollover = useMutation(api.cycles.confirmRollover);
-  const insightAction = useAction(api.ai.insight);
 
   useEffect(() => {
     if (!sessionLoading && !isAuthenticated) router.push("/login");
@@ -59,16 +58,6 @@ export default function DashboardPage() {
   const transactions = useQuery(api.transactions.list, args);
   const settings = useQuery(api.settings.get, args);
   const month = useQuery(api.reports.getSummary, token ? { sessionToken: token, period: "month" } : "skip");
-
-  // Cached server-side to at most one Claude call per day.
-  const [insight, setInsight] = useState<string | null>(null);
-  useEffect(() => {
-    if (!token || !dashboard) return;
-    insightAction({ sessionToken: token })
-      .then((r) => setInsight(r.insight))
-      .catch(() => setInsight(null));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, !!dashboard]);
 
   if (sessionLoading || !isAuthenticated || dashboard === undefined) return <DashboardSkeleton />;
 
@@ -138,13 +127,6 @@ export default function DashboardPage() {
           },
         ]}
       />
-
-      {insight ? (
-        <div className="mt-3 flex gap-3 rounded-2xl bg-card p-4 shadow-card">
-          <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-          <p className="text-sm leading-relaxed text-foreground">{insight}</p>
-        </div>
-      ) : null}
 
       <SectionTitle title="This month" href="/reports" />
       {topCategories.length ? (

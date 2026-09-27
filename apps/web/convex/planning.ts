@@ -45,6 +45,8 @@ const zakatInputsValidator = v.object({
 });
 
 const taxInputsValidator = v.object({
+  // Which bucket Nexa's logged income goes into when calculating automatically ("manual" = off).
+  autoIncomeType: v.optional(v.union(v.literal("salary"), v.literal("export"), v.literal("business"), v.literal("manual"))),
   salaryIncome: v.number(),
   businessIncome: v.number(),
   itExportIncome: v.number(),
@@ -208,10 +210,21 @@ export const getZakat = query({
     await requireSession(ctx, sessionToken);
     const row = await ctx.db.query("zakatProfile").first();
     const { txs } = await loadTransactions(ctx, 0, Date.now());
+    const loans = summarizeLoans(txs);
+    const metals = await ctx.db.query("metalPrices").first();
+    const currency = await getCurrencyContext(ctx);
+    // Saved inputs hold only what Nexa can't know (metal weights, investments, cash outside
+    // Nexa, extra debts, price overrides); live figures below are added on the page.
     return {
       inputs: row ? await decryptJson<Record<string, unknown>>(row.encryptedInputs, await getDekForRead(ctx)) : null,
       zakatDate: row?.zakatDate ?? null,
-      suggestedReceivables: summarizeLoans(txs).owedToYou,
+      live: {
+        owedToYou: loans.owedToYou,
+        youOwe: loans.youOwe,
+        goldPerGram: metals ? toPrimary(metals.goldPerGramPkr, "PKR", currency) : null,
+        silverPerGram: metals ? toPrimary(metals.silverPerGramPkr, "PKR", currency) : null,
+        pricesDate: metals?.date ?? null,
+      },
     };
   },
 });

@@ -106,7 +106,9 @@ export default function GoalsPage() {
   return (
     <PageShell
       title="Goals"
-      description="Set targets, track progress, and see when you'll reach each goal. Progress updates automatically from your cycle savings."
+      description="Progress updates automatically from your savings."
+      backHref="/plan"
+      backLabel="Plan"
       actions={
         <Button onClick={openCreateDialog}>
           <Plus className="h-4 w-4" />

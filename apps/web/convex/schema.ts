@@ -195,6 +195,14 @@ export default defineSchema({
     updatedAt: v.number(),
   }),
 
+  // Singleton. Daily international spot prices for the Zakat nisab, in PKR per gram (24k gold).
+  metalPrices: defineTable({
+    goldPerGramPkr: v.number(),
+    silverPerGramPkr: v.number(),
+    date: v.string(),
+    fetchedAt: v.number(),
+  }),
+
   // Singleton. Encrypted JSON of the tax calculator inputs.
   taxProfile: defineTable({
     encryptedInputs: v.string(),
