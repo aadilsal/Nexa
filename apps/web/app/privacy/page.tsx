@@ -29,7 +29,7 @@ export default function PrivacyPage() {
       <ProseSection title="What we collect">
         <p>
           <strong>Account information:</strong> Name, email address, and
-          authentication credentials (password hash or passkey).
+          authentication credentials (encrypted authenticator secret).
         </p>
         <p>
           <strong>Financial data you provide:</strong> Income, fixed expenses,

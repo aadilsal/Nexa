@@ -172,7 +172,6 @@ export default function ProfilePage() {
         </SettingsGroup>
 
         <SettingsGroup label="Security & data">
-          <SettingsLinkRow href="/profile/security" title="Security" description="Change your password" />
           <SettingsLinkRow href="/profile/data" title="Data & privacy" description="Export your data" />
           <SettingsLinkRow href="/profile/activity" title="Activity log" description="Recent sign-in activity on your account" />
         </SettingsGroup>

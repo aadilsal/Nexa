@@ -61,18 +61,19 @@ export function generateTotpSecret(): string {
   return base32Encode(crypto.getRandomValues(new Uint8Array(20))); // 160-bit, standard size
 }
 
-export async function verifyTotp(
+/** Returns the matched 30s step counter, or null. Callers use the counter to reject replays. */
+export async function matchTotpCounter(
   secretBase32: string,
   code: string,
   forTime = Date.now(),
-): Promise<boolean> {
+): Promise<number | null> {
   const secretBytes = base32Decode(secretBase32);
   const counter = Math.floor(forTime / 1000 / 30);
   // Allow +/-1 step (30s) of clock drift between server and the user's phone.
   for (const delta of [0, -1, 1]) {
-    if ((await hotp(secretBytes, counter + delta)) === code) return true;
+    if ((await hotp(secretBytes, counter + delta)) === code) return counter + delta;
   }
-  return false;
+  return null;
 }
 
 export function buildOtpAuthUri(secretBase32: string, accountLabel: string, issuer: string): string {

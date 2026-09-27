@@ -1,8 +1,8 @@
-// One-time owner setup, run locally to avoid the npx.cmd JSON-argument quoting problem
-// on Windows. Reads the password from an env var instead of a shell-escaped JSON string.
+// One-time owner setup: creates the authenticator (TOTP) secret and recovery codes.
+// Login is authenticator-code-only, so there is no password to provide.
 //
 // Usage (PowerShell):
-//   $env:SETUP_PASSWORD = 'your-strong-password-here'
+//   $env:CONVEX_URL_OVERRIDE = 'https://<deployment>.convex.cloud'   # optional, else .env.local
 //   node scripts/run-auth-setup.mjs
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api.js";
@@ -16,18 +16,11 @@ function readConvexUrlFromEnvLocal() {
   return match[1].trim();
 }
 
-const password = process.env.SETUP_PASSWORD;
-if (!password) {
-  console.error("Set $env:SETUP_PASSWORD first, e.g.:");
-  console.error("  $env:SETUP_PASSWORD = 'your-strong-password-here'");
-  process.exit(1);
-}
-
 const convexUrl = readConvexUrlFromEnvLocal();
 const client = new ConvexHttpClient(convexUrl);
 
 try {
-  const result = await client.action(api.auth.setup, { password });
+  const result = await client.action(api.auth.setup, {});
   console.log("\n=== SAVE THESE NOW — shown only once ===\n");
   console.log("Scan this into your authenticator app (Google Authenticator/Authy/etc):");
   console.log(result.otpAuthUri);

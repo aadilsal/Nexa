@@ -138,10 +138,12 @@ export default defineSchema({
   // ─── Auth: hand-rolled password + TOTP ─────────────────────────────────
   // Singleton
   authCredentials: defineTable({
-    passwordHash: v.string(), // PBKDF2-SHA256
-    passwordSalt: v.string(),
-    passwordIterations: v.number(),
+    // Legacy: login is TOTP-only now. Kept optional so existing rows still validate.
+    passwordHash: v.optional(v.string()),
+    passwordSalt: v.optional(v.string()),
+    passwordIterations: v.optional(v.number()),
     totpSecretEncrypted: v.string(), // app-encrypted with the same DEK mechanism
+    lastTotpCounter: v.optional(v.number()), // highest 30s step accepted — blocks code replay
     recoveryCodeHashes: v.array(v.string()), // one-time-use, consumed on use
     createdAt: v.number(),
   }),

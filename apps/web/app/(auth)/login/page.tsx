@@ -5,21 +5,18 @@ import { useAppRouter } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
-import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useSession } from "@/lib/session";
 import { BRAND } from "@/lib/brand";
 
-// Single-owner password + TOTP login, replacing the old Better Auth email/password +
-// magic-link + passkey flow. There's no signup here — the one owner identity is created
-// once via `npx convex run auth:setup`, not through this UI.
+// Single-owner, authenticator-code-only login. There's no signup here — the one owner
+// identity is created once via `node scripts/run-auth-setup.mjs`, not through this UI.
 
 export default function LoginPage() {
   const router = useAppRouter();
   const { login, loginWithRecoveryCode } = useSession();
-  const [mode, setMode] = useState<"password" | "recovery">("password");
-  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<"totp" | "recovery">("totp");
   const [totpCode, setTotpCode] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
   const [error, setError] = useState("");
@@ -30,8 +27,8 @@ export default function LoginPage() {
     setError("");
     setIsSubmitting(true);
     try {
-      if (mode === "password") {
-        await login(password, totpCode);
+      if (mode === "totp") {
+        await login(totpCode);
       } else {
         await loginWithRecoveryCode(recoveryCode);
       }
@@ -51,31 +48,20 @@ export default function LoginPage() {
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
-          {mode === "password" ? (
-            <>
-              <FormField label="Password" htmlFor="password">
-                <PasswordInput
-                  id="password"
-                  autoComplete="current-password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </FormField>
-              <FormField label="Authenticator code" htmlFor="totpCode">
-                <Input
-                  id="totpCode"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder="123456"
-                  maxLength={6}
-                  value={totpCode}
-                  onChange={(e) => setTotpCode(e.target.value)}
-                  required
-                />
-              </FormField>
-            </>
+          {mode === "totp" ? (
+            <FormField label="Authenticator code" htmlFor="totpCode">
+              <Input
+                id="totpCode"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="123456"
+                maxLength={6}
+                autoFocus
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
+                required
+              />
+            </FormField>
           ) : (
             <FormField label="Recovery code" htmlFor="recoveryCode">
               <Input
@@ -105,11 +91,11 @@ export default function LoginPage() {
             type="button"
             className="text-primary hover:underline"
             onClick={() => {
-              setMode(mode === "password" ? "recovery" : "password");
+              setMode(mode === "totp" ? "recovery" : "totp");
               setError("");
             }}
           >
-            {mode === "password" ? "Lost your authenticator? Use a recovery code" : "Back to password sign-in"}
+            {mode === "totp" ? "Lost your authenticator? Use a recovery code" : "Back to authenticator sign-in"}
           </button>
         </p>
       </CardContent>

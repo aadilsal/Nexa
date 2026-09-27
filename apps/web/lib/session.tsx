@@ -16,7 +16,7 @@ interface SessionContextValue {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (password: string, totpCode: string) => Promise<void>;
+  login: (totpCode: string) => Promise<void>;
   loginWithRecoveryCode: (recoveryCode: string) => Promise<{ remainingRecoveryCodes: number }>;
   logout: () => Promise<void>;
 }
@@ -52,8 +52,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(
-    async (password: string, totpCode: string) => {
-      const result = await loginAction({ password, totpCode });
+    async (totpCode: string) => {
+      const result = await loginAction({ totpCode });
       persistToken(result.token);
     },
     [loginAction, persistToken],
