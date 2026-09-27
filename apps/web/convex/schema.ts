@@ -75,6 +75,7 @@ export default defineSchema({
       v.literal("CHARITY"),
       v.literal("INVESTMENT"),
       v.literal("INCOME"),
+      v.literal("LOAN"),
       v.literal("OTHER"),
     ),
     currency: v.string(),
@@ -82,6 +83,7 @@ export default defineSchema({
     // Phase 6 addition: auto-log this fixed expense as a real ledger transaction
     // at cycle start instead of requiring manual re-entry every cycle.
     autoLogOnCycleStart: v.optional(v.boolean()),
+    dueDay: v.optional(v.number()), // 1–31: day of month the bill is due (for reminders)
     createdAt: v.number(),
   }),
 
@@ -91,16 +93,6 @@ export default defineSchema({
     encryptedExpectedAmount: v.string(),
     createdAt: v.number(),
   }),
-
-  // Historical audit trail only (no longer a performance cache — Convex queries are
-  // reactive and recompute on their own). Written on cycle close and weekly review,
-  // not on every dashboard view.
-  engineSnapshots: defineTable({
-    cycleId: v.id("financialCycles"),
-    engineVersion: v.string(),
-    output: v.any(),
-    calculatedAt: v.number(),
-  }).index("by_cycle", ["cycleId", "calculatedAt"]),
 
   // Singleton
   userSettings: defineTable({
@@ -162,70 +154,6 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_createdAt", ["createdAt"]),
 
-  // ─── Investing (Phase 6, new — no equivalent in the old schema) ────────
-  portfolioHoldings: defineTable({
-    symbol: v.string(),
-    name: v.string(),
-    assetType: v.union(v.literal("PSX_STOCK"), v.literal("MUTUAL_FUND")),
-    encryptedUnitsHeld: v.string(),
-    encryptedAverageCostBasis: v.string(),
-    currency: v.string(),
-    createdAt: v.number(),
-  })
-    .index("by_symbol", ["symbol"])
-    .index("by_assetType", ["assetType"]),
-
-  investmentTransactions: defineTable({
-    holdingId: v.id("portfolioHoldings"),
-    txType: v.union(v.literal("BUY"), v.literal("SELL")),
-    encryptedUnits: v.string(),
-    encryptedPricePerUnit: v.string(),
-    encryptedTotalAmount: v.string(),
-    currency: v.string(),
-    notes: v.optional(v.string()),
-    createdAt: v.number(),
-  }).index("by_holding", ["holdingId", "createdAt"]),
-
-  recurringContributionRules: defineTable({
-    targetType: v.union(
-      v.literal("GOAL"),
-      v.literal("CHARITY"),
-      v.literal("INVESTMENT"),
-    ),
-    encryptedAmount: v.string(),
-    cadence: v.object({
-      kind: v.literal("monthly"),
-      dayOfMonth: v.number(),
-    }),
-    goalId: v.optional(v.id("goals")),
-    holdingId: v.optional(v.id("portfolioHoldings")),
-    active: v.boolean(),
-    lastAppliedDate: v.optional(v.number()),
-    createdAt: v.number(),
-  }).index("by_active", ["active"]),
-
-  // ─── WhatsApp bot (Phase 7) ─────────────────────────────────────────────
-  // Singleton
-  whatsappLink: defineTable({
-    phoneNumberEncrypted: v.string(),
-    verificationState: v.union(
-      v.literal("UNLINKED"),
-      v.literal("PENDING"),
-      v.literal("VERIFIED"),
-    ),
-    verificationCodeHash: v.optional(v.string()),
-    linkedAt: v.optional(v.number()),
-  }),
-
-  whatsappPendingDrafts: defineTable({
-    phoneNumberHash: v.string(),
-    parsedPayloadEncrypted: v.string(),
-    createdAt: v.number(),
-    expiresAt: v.number(),
-  })
-    .index("by_phone", ["phoneNumberHash"])
-    .index("by_expiresAt", ["expiresAt"]),
-
   // ─── Automatic import of bank/wallet alerts (iPhone Shortcut SMS + Gmail script) ───
   ingestConfig: defineTable({
     tokenHash: v.string(), // sha256 of the bearer token; the raw token is shown once
@@ -249,6 +177,37 @@ export default defineSchema({
     .index("by_messageHash", ["messageHash"])
     .index("by_matchKey", ["matchKey", "createdAt"])
     .index("by_createdAt", ["createdAt"]),
+
+  // ─── Planning: budgets, Zakat, push notifications ───────────────────────
+  budgets: defineTable({
+    category: v.string(),
+    encryptedLimit: v.string(), // monthly limit, app-encrypted like other amounts
+    alertMonth: v.optional(v.string()), // "YYYY-MM" the alert levels below apply to
+    alertedLevel: v.optional(v.number()), // highest threshold already notified (80 or 100)
+    createdAt: v.number(),
+  }).index("by_category", ["category"]),
+
+  // Singleton. Inputs are a JSON blob encrypted as a whole (amounts, grams, prices).
+  zakatProfile: defineTable({
+    encryptedInputs: v.string(),
+    zakatDate: v.optional(v.number()), // next Zakat due date (same Hijri date each year)
+    lastRemindedFor: v.optional(v.number()), // zakatDate a reminder was already sent for
+    updatedAt: v.number(),
+  }),
+
+  // Singleton. Encrypted JSON of the tax calculator inputs.
+  taxProfile: defineTable({
+    encryptedInputs: v.string(),
+    outdatedNoticeFor: v.optional(v.number()), // tax year we already warned has no rates yet
+    updatedAt: v.number(),
+  }),
+
+  pushSubscriptions: defineTable({
+    endpoint: v.string(),
+    p256dh: v.string(),
+    auth: v.string(),
+    createdAt: v.number(),
+  }).index("by_endpoint", ["endpoint"]),
 
   // ─── Cached AI explanations (keyed by sha256 of scope + question + data) ───
   aiCache: defineTable({

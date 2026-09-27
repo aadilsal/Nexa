@@ -16,21 +16,21 @@ export function StatStrip({
   return (
     <div
       className={cn(
-        "grid divide-y divide-border/50 sm:divide-x sm:divide-y-0",
-        items.length === 3 && "sm:grid-cols-3",
-        items.length === 2 && "sm:grid-cols-2",
-        items.length === 4 && "sm:grid-cols-4",
+        "grid gap-3",
+        items.length === 3 && "grid-cols-3",
+        items.length === 2 && "grid-cols-2",
+        items.length === 4 && "grid-cols-2 sm:grid-cols-4",
         className,
       )}
     >
       {items.map((item) => (
-        <div key={item.label} className="px-0 py-5 sm:px-6 sm:first:pl-0 sm:last:pr-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <div key={item.label} className="min-w-0 rounded-2xl bg-card p-3.5 shadow-card">
+          <p className="text-xs font-medium text-muted-foreground">
             {item.label}
           </p>
           <p
             className={cn(
-              "mt-2 font-mono text-2xl font-semibold tabular-nums tracking-tight",
+              "mt-1 truncate text-base font-semibold tabular-nums tracking-tight sm:text-lg",
               item.valueClassName,
             )}
           >

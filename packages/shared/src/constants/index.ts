@@ -12,6 +12,7 @@ export const CATEGORIES = [
   "CHARITY",
   "INVESTMENT",
   "INCOME",
+  "LOAN",
   "OTHER",
 ] as const;
 
@@ -62,6 +63,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   CHARITY: "Charity",
   INVESTMENT: "Investment",
   INCOME: "Income",
+  LOAN: "Lent & borrowed",
   OTHER: "Other",
 };
 
@@ -175,6 +177,8 @@ export const CATEGORY_KEYWORDS: Record<Category, string[]> = {
   CHARITY: ["charity", "donation", "masjid", "mosque", "sadqa", "zakat"],
   INVESTMENT: ["investment", "stocks", "mutual fund"],
   INCOME: ["salary", "freelance", "bonus", "payment", "income", "freelancing"],
+  // Money moved to/from people: changes cash but is not spending or income.
+  LOAN: ["lent", "loan", "udhaar", "udhar", "borrow", "paid back", "repaid", "returned"],
   OTHER: [],
 };
 

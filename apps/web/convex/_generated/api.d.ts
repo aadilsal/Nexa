@@ -28,11 +28,12 @@ import type * as lib_password from "../lib/password.js";
 import type * as lib_ratelimit from "../lib/ratelimit.js";
 import type * as lib_session from "../lib/session.js";
 import type * as lib_totp from "../lib/totp.js";
-import type * as migration from "../migration.js";
+import type * as planning from "../planning.js";
+import type * as push from "../push.js";
+import type * as pushNode from "../pushNode.js";
 import type * as reports from "../reports.js";
 import type * as reviews from "../reviews.js";
 import type * as settings from "../settings.js";
-import type * as simulations from "../simulations.js";
 import type * as transactions from "../transactions.js";
 
 import type {
@@ -62,11 +63,12 @@ declare const fullApi: ApiFromModules<{
   "lib/ratelimit": typeof lib_ratelimit;
   "lib/session": typeof lib_session;
   "lib/totp": typeof lib_totp;
-  migration: typeof migration;
+  planning: typeof planning;
+  push: typeof push;
+  pushNode: typeof pushNode;
   reports: typeof reports;
   reviews: typeof reviews;
   settings: typeof settings;
-  simulations: typeof simulations;
   transactions: typeof transactions;
 }>;
 

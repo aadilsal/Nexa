@@ -142,11 +142,14 @@ export function parseTransactionInput(
 
   const { category, confidence } = matchCategory(extracted.text);
 
+  // Loans have a direction: "Lent Ali" is money out; "Ali paid back" / "Borrowed from Sara" is in.
+  const loanIn = category === "LOAN" && /\b(paid back|repaid|returned|borrow(ed)?|received)\b/i.test(extracted.text);
+
   return {
     description: extracted.text,
     amount: extracted.amount,
     category,
-    type: "EXPENSE",
+    type: loanIn ? "INCOME" : "EXPENSE",
     currency,
     confidence,
   };

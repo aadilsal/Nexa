@@ -24,10 +24,13 @@ import { TimezoneSelect } from "@/components/timezone-select";
 import { PageShell, SettingsGroup, SettingsLinkRow, SettingsRow } from "@/components/layouts/surface";
 import { api } from "@/convex/_generated/api";
 import { useSession } from "@/lib/session";
+import { useAppRouter } from "@/lib/navigation";
+import { NotificationsToggle } from "@/components/notifications-toggle";
 import { FEATURE_HELP } from "@/lib/feature-help";
 
 export default function ProfilePage() {
-  const { token } = useSession();
+  const { token, logout } = useSession();
+  const router = useAppRouter();
   const profile = useQuery(api.settings.get, token ? { sessionToken: token } : "skip");
   const updateProfile = useMutation(api.settings.updateProfile);
   const updateSettings = useMutation(api.settings.updateSettings);
@@ -109,7 +112,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <PageShell title="Profile" description="Account, security, and preferences." narrow>
+    <PageShell title="Settings" narrow>
       <div className="space-y-2">
         <SettingsGroup label="Account">
           <SettingsRow>
@@ -160,10 +163,20 @@ export default function ProfilePage() {
           </SettingsRow>
         </SettingsGroup>
 
-        <SettingsGroup label="Security & data">
+        <SettingsGroup label="Automation & data">
+          <NotificationsToggle />
           <SettingsLinkRow href="/profile/auto-import" title="Auto-import" description="Log spending from bank SMS and emails" />
-          <SettingsLinkRow href="/profile/data" title="Data & privacy" description="Export your data" />
-          <SettingsLinkRow href="/profile/activity" title="Activity log" description="Recent sign-in activity on your account" />
+          <SettingsLinkRow href="/profile/data" title="Export data" description="Download your records" />
+        </SettingsGroup>
+
+        <SettingsGroup label="Account">
+          <SettingsLinkRow
+            title="Sign out"
+            onClick={async () => {
+              await logout();
+              router.push("/login");
+            }}
+          />
         </SettingsGroup>
       </div>
     </PageShell>

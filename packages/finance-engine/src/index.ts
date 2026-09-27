@@ -2,6 +2,25 @@ export { parseTransactionInput } from "./parser.js";
 export type { ParsedTransactionResult } from "./parser.js";
 
 export { parseBankMessage } from "./bank-message.js";
+
+export { separateLoans, summarizeLoans, loanPerson, LOAN_CATEGORY } from "./loans.js";
+export type { LoanBalance } from "./loans.js";
+export { detectRecurring } from "./recurring.js";
+export type { RecurringCharge, RecurringInputTx } from "./recurring.js";
+export { calculateSpendingPace } from "./pace.js";
+export type { SpendingPace } from "./pace.js";
+export {
+  calculateZakat,
+  nextZakatDate,
+  ZAKAT_RATE,
+  TOLA_GRAMS,
+  SILVER_NISAB_GRAMS,
+  GOLD_NISAB_GRAMS,
+  LUNAR_YEAR_DAYS,
+} from "./zakat.js";
+export type { ZakatInput, ZakatResult, NisabBasis } from "./zakat.js";
+export { calculateIncomeTax, taxYearFor, slabTax, TAX_TABLES } from "./tax.js";
+export type { IncomeTaxInput, IncomeTaxResult, TaxSlab, TaxTable } from "./tax.js";
 export type { BankMessageResult, BankMessageOptions } from "./bank-message.js";
 
 export {

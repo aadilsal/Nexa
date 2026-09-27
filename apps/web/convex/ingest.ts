@@ -7,6 +7,7 @@ import { sha256Hex, timingSafeEqualHex } from "./lib/crypto";
 import { generateSessionToken, requireSession } from "./lib/session";
 import { appendEvent } from "./ledger";
 import { ensureCurrentCycleImpl } from "./cycles";
+import { notify } from "./push";
 
 // Automatic import of bank / wallet alerts. Two senders post to POST /ingest on the Convex
 // site URL with `Authorization: Bearer <ingest token>`:
@@ -190,6 +191,14 @@ export const ingestHttp = httpAction(async (ctx, request) => {
       },
     });
     await ctx.runMutation(internal.ingest._attachEvent, { id: claimId, eventId: event.eventId });
+    await notify(ctx, {
+      title: `${parsed.type === "INCOME" ? "Received" : "Spent"} ${parsed.currency} ${parsed.amount.toLocaleString("en-PK")}`,
+      body: `${parsed.description} · logged from ${source === "sms" ? "SMS" : "email"}. Tap to review.`,
+      url: "/reports",
+    });
+    if (parsed.type === "EXPENSE") {
+      await ctx.scheduler.runAfter(0, internal.planning._checkBudget, { category: parsed.category });
+    }
   } catch (err) {
     await ctx.runMutation(internal.ingest._release, { id: claimId });
     return json({ error: err instanceof Error ? err.message : "could not log transaction" }, 500);

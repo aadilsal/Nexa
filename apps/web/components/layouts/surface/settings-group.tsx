@@ -34,14 +34,14 @@ export function SettingsGroup({
   className?: string;
 }) {
   return (
-    <section className={cn("border-t border-border/50 pt-8 first:border-t-0 first:pt-0", className)}>
-      <div className="mb-4">
+    <section className={cn("mt-7 first:mt-0", className)}>
+      <div className="mb-2 px-1">
         <SettingsSectionLabel>{label}</SettingsSectionLabel>
         {description ? (
           <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
         ) : null}
       </div>
-      <div className="divide-y divide-border/50">{children}</div>
+      <div className="divide-y divide-border rounded-2xl bg-card px-4 shadow-card">{children}</div>
     </section>
   );
 }
@@ -58,7 +58,7 @@ export function SettingsRow({
   className?: string;
 }) {
   return (
-    <div className={cn("py-4 first:pt-0 last:pb-0", className)}>
+    <div className={cn("py-4", className)}>
       {label ? (
         <p className="mb-2 text-sm font-medium text-foreground">{label}</p>
       ) : null}
@@ -102,7 +102,7 @@ export function SettingsLinkRow({
   );
 
   const className =
-    "flex w-full items-center gap-3 py-4 text-left transition-colors first:pt-0 last:pb-0 hover:text-foreground";
+    "flex min-h-14 w-full items-center gap-3 py-3.5 text-left transition-colors active:opacity-70";
 
   if (href) {
     return (
@@ -127,7 +127,7 @@ export function SettingsList({
   className?: string;
 }) {
   return (
-    <ul className={cn("divide-y divide-border/50", className)}>{children}</ul>
+    <ul className={cn("divide-y divide-border rounded-2xl bg-card px-4 shadow-card", className)}>{children}</ul>
   );
 }
 

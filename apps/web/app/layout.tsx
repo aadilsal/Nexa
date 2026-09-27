@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     icon: [{ url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
-  // iOS "Add to Home Screen": open full-screen with its own name and a dark status bar.
+  // iOS "Add to Home Screen": open full-screen with its own name.
   appleWebApp: {
     capable: true,
     title: BRAND.name,
@@ -34,10 +34,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f4f6" },
-    { media: "(prefers-color-scheme: dark)", color: "#0c0c0e" },
-  ],
+  viewportFit: "cover", // lets the bottom tab bar pad for the iPhone home indicator (.pb-safe)
+  themeColor: "#f5f6f8",
 };
 
 export default function RootLayout({

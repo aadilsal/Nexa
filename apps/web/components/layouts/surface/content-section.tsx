@@ -18,9 +18,9 @@ export function ContentSection({
   className?: string;
 }) {
   return (
-    <section className={cn("border-t border-border/50 pt-8", className)}>
-      <div className="mb-5">
-        <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+    <section className={cn("mt-8 first:mt-0", className)}>
+      <div className="mb-3 px-1">
+        <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight">
           {icon}
           {info ? <LabelWithInfo info={info}>{title}</LabelWithInfo> : title}
         </h2>

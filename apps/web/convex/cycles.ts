@@ -8,6 +8,7 @@ import { requireSession } from "./lib/session";
 import { encryptNumber, decryptNumber } from "./lib/crypto";
 import { getDekForRead, getOrCreateDekForAction } from "./lib/dek";
 import { getSettingsRow } from "./settings";
+import { notify } from "./push";
 
 // Ported from apps/api/src/modules/cycles/cycles.service.ts. Single-owner: no userId
 // scoping anywhere. Writes go through actions (creating/rolling a cycle always encrypts a
@@ -199,8 +200,8 @@ export async function ensureCurrentCycleImpl(ctx: ActionCtx): Promise<{ cycleId:
     const payday = settingsRow?.primaryPayday ?? 1;
 
     if (cycle && cycle.status === "ACTIVE" && cycle.endDate < Date.now()) {
-      // Roll over: close the expired cycle, persist goal progress, open the next one
-      // PENDING_CONFIRMATION so the user can review/adjust the carried-forward balance.
+      // Roll over: close the expired cycle, persist goal progress, and start the next one
+      // straight away (ACTIVE) with the balance the last cycle ended on carried forward.
       const startingBalance = cycle.encryptedStartingBalance
         ? await decryptNumber(cycle.encryptedStartingBalance, dek)
         : 0;
@@ -225,8 +226,22 @@ export async function ensureCurrentCycleImpl(ctx: ActionCtx): Promise<{ cycleId:
       const newId: Id<"financialCycles"> = await ctx.runMutation(internal.cycles._insertCycle, {
         startDate: startDate.getTime(),
         endDate: endDate.getTime(),
-        status: "PENDING_CONFIRMATION",
+        status: "ACTIVE",
         encryptedStartingBalance: await encryptNumber(endingCash, dek),
+      });
+
+      // End-of-cycle nudge: what was actually saved (money lent/borrowed excluded).
+      const saved = transactions
+        .filter((tx) => tx.category !== "LOAN")
+        .reduce((sum, tx) => sum + (tx.type === "INCOME" ? tx.amount : -tx.amount), 0);
+      const carried = Math.round(endingCash).toLocaleString("en-PK");
+      await notify(ctx, {
+        title: "New cycle started",
+        body:
+          saved > 0
+            ? `You saved ${Math.round(saved).toLocaleString("en-PK")} last cycle. Starting this one with ${carried} — put the savings towards a goal.`
+            : `Starting this cycle with ${carried} carried over from last cycle.`,
+        url: "/dashboard",
       });
       return { cycleId: newId };
     }

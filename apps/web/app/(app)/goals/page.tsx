@@ -15,7 +15,6 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useSession } from "@/lib/session";
 import { useCurrency } from "@/lib/currency";
-import { track } from "@nexa/analytics/react";
 
 export default function GoalsPage() {
   const { token } = useSession();
@@ -64,7 +63,6 @@ export default function GoalsPage() {
           currency: data?.currency ?? "PKR",
         });
         toast.success("Goal created");
-        track("goal_created");
       } else if (editingGoal) {
         await updateGoal({
           sessionToken: token,
@@ -148,12 +146,6 @@ export default function GoalsPage() {
             })}
           </div>
 
-          <p className="text-sm text-muted-foreground">
-            Wondering how a purchase affects your goals?{" "}
-            <Link href="/can-i-buy" className="text-primary hover:underline">
-              Try Can I Buy This?
-            </Link>
-          </p>
         </div>
       ) : (
         <EmptyState

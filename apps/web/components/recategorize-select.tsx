@@ -7,7 +7,6 @@ import { CategorySelect } from "@/components/category-select";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useSession } from "@/lib/session";
-import { track } from "@nexa/analytics/react";
 
 interface Props {
   transactionId: string;
@@ -28,7 +27,6 @@ export function RecategorizeSelect({ transactionId, category }: Props) {
     setIsPending(true);
     try {
       await updateCategory({ sessionToken: token, eventId: transactionId as Id<"transactionEvents">, category: newCategory });
-      track("transaction_recategorized");
     } finally {
       setIsPending(false);
     }

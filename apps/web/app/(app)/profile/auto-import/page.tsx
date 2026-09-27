@@ -75,7 +75,7 @@ export default function AutoImportPage() {
       title="Auto-import"
       description="Log spending automatically from bank SMS and emails."
       backHref="/profile"
-      backLabel="Profile"
+      backLabel="Settings"
       narrow
     >
       <SettingsGroup label="1. Import token" description="Your iPhone and Gmail use this to send alerts to Nexa.">

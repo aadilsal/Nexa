@@ -129,7 +129,7 @@ export default function FinancialPlanPage() {
 
   if (plan === undefined || settings === undefined) {
     return (
-      <PageShell title="Bills & income" backHref="/profile" backLabel="Profile">
+      <PageShell title="Bills & income" backHref="/profile" backLabel="Settings">
         <p className="text-sm text-muted-foreground">Loading your plan…</p>
       </PageShell>
     );
@@ -143,7 +143,7 @@ export default function FinancialPlanPage() {
       title="Bills & income"
       description="These numbers feed directly into Safe To Spend and your financial health score."
       backHref="/profile"
-      backLabel="Profile"
+      backLabel="Settings"
     >
       <HighlightSurface className="mb-8">
         <p className="text-sm leading-relaxed text-muted-foreground">

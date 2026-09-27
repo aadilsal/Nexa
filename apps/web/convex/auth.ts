@@ -13,7 +13,10 @@ import { generateRecoveryCode } from "./lib/password";
 // Convex Auth (@convex-dev/auth) was rejected: it's beta, has no TOTP primitive, and is
 // built around Auth.js email verify/reset flows that don't apply here.
 
-const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+// Rolling sessions: each app open extends the device's session (see touchSession), so you
+// stay signed in unless a device goes unused for this long.
+const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
+const SESSION_RENEW_AFTER_MS = 24 * 60 * 60 * 1000; // extend at most once a day
 const LOGIN_RATE_LIMIT = 5; // attempts per 15-minute window, see lib/ratelimit.ts
 
 export const _getCredentials = internalQuery({
@@ -188,6 +191,25 @@ export const recentLoginAttempts = query({
     await requireSession(ctx, sessionToken);
     const attempts = await ctx.db.query("loginAttempts").withIndex("by_createdAt").order("desc").take(50);
     return attempts.map((a) => ({ id: a._id, success: a.success, createdAt: a.createdAt }));
+  },
+});
+
+/** Called when the app opens: slides a valid session's expiry forward, or reports it dead so the
+ *  client can drop the stale token and show the login screen. Only the token's hash is stored. */
+export const touchSession = mutation({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, { sessionToken }) => {
+    const tokenHash = await hashSessionToken(sessionToken);
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_tokenHash", (q) => q.eq("tokenHash", tokenHash))
+      .first();
+    const now = Date.now();
+    if (!session || session.expiresAt < now) return { valid: false };
+    if (session.expiresAt - now < SESSION_TTL_MS - SESSION_RENEW_AFTER_MS) {
+      await ctx.db.patch(session._id, { expiresAt: now + SESSION_TTL_MS });
+    }
+    return { valid: true };
   },
 });
 

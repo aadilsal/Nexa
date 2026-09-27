@@ -1,57 +1,54 @@
 "use client";
 
 import { useState } from "react";
-import { PageShell, ContentSection } from "@/components/layouts/surface";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { WeekReviewView } from "@/components/reports/week-review-view";
 import { PeriodSummaryView } from "@/components/reports/period-summary-view";
 import { PeriodNavigator } from "@/components/reports/period-navigator";
 import { TransactionHistoryList } from "@/components/reports/transaction-history-list";
-import { REPORT_PERIODS, REPORT_PERIOD_LABELS, type ReportPeriod } from "@/lib/report-period";
+import { cn } from "@/lib/utils";
 
-export default function ReportsPage() {
-  const [period, setPeriod] = useState<ReportPeriod>("week");
-  const [dates, setDates] = useState<Record<ReportPeriod, number>>(() => {
-    const now = Date.now();
-    return { week: now, month: now, year: now };
-  });
+type Period = "month" | "year";
+const PERIODS: Array<{ value: Period; label: string }> = [
+  { value: "month", label: "Month" },
+  { value: "year", label: "Year" },
+];
+
+export default function ActivityPage() {
+  const [period, setPeriod] = useState<Period>("month");
+  const [dates, setDates] = useState<Record<Period, number>>(() => ({ month: Date.now(), year: Date.now() }));
+  const date = dates[period];
 
   return (
-    <PageShell
-      title="Reports"
-      description="See how much you're spending, by category, week to week, month to month, or over the year."
-      narrow
-    >
-      <Tabs value={period} onValueChange={(value) => setPeriod(value as ReportPeriod)}>
-        <TabsList>
-          {REPORT_PERIODS.map((option) => (
-            <TabsTrigger key={option} value={option}>
-              {REPORT_PERIOD_LABELS[option]}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+    <>
+      <h1 className="mb-4 text-[28px] font-bold leading-tight tracking-tight">Activity</h1>
 
-        {REPORT_PERIODS.map((option) => (
-          <TabsContent key={option} value={option} className="space-y-8">
-            {option === "week" ? (
-              <WeekReviewView />
-            ) : (
-              <>
-                <PeriodNavigator
-                  date={new Date(dates[option])}
-                  period={option}
-                  onChange={(next) => setDates((prev) => ({ ...prev, [option]: next.getTime() }))}
-                />
-                <PeriodSummaryView period={option} date={dates[option]} />
-              </>
+      <div role="tablist" aria-label="Period" className="mb-4 grid grid-cols-2 rounded-xl bg-muted p-1">
+        {PERIODS.map((p) => (
+          <button
+            key={p.value}
+            role="tab"
+            type="button"
+            aria-selected={period === p.value}
+            onClick={() => setPeriod(p.value)}
+            className={cn(
+              "h-9 rounded-lg text-sm font-medium transition-colors",
+              period === p.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
             )}
-
-            <ContentSection title="Transactions">
-              <TransactionHistoryList key={`${option}-${dates[option]}`} period={option} date={dates[option]} />
-            </ContentSection>
-          </TabsContent>
+          >
+            {p.label}
+          </button>
         ))}
-      </Tabs>
-    </PageShell>
+      </div>
+
+      <PeriodNavigator
+        date={new Date(date)}
+        period={period}
+        onChange={(next) => setDates((prev) => ({ ...prev, [period]: next.getTime() }))}
+      />
+
+      <div className="mt-4 space-y-8">
+        <PeriodSummaryView period={period} date={date} />
+        <TransactionHistoryList key={`${period}-${date}`} period={period} date={date} />
+      </div>
+    </>
   );
 }

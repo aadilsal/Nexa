@@ -43,7 +43,7 @@ export function PeriodNavigator({
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{formatLabel(date, period)}</p>
+      <p className="text-base font-semibold">{formatLabel(date, period)}</p>
       <Button
         variant="outline"
         size="icon"

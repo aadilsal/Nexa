@@ -40,6 +40,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const loginAction = useAction(api.auth.login);
   const recoveryAction = useAction(api.auth.loginWithRecoveryCode);
   const logoutMutation = useMutation(api.auth.logout);
+  const touchSession = useMutation(api.auth.touchSession);
 
   const persistToken = useCallback((next: string | null) => {
     setToken(next);
@@ -50,6 +51,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       // ignore
     }
   }, []);
+
+  // On app open: roll the stored session's expiry forward (stay signed in), or drop it if the
+  // server says it's expired/revoked. Network errors keep the token — offline never logs you out.
+  const [touched, setTouched] = useState(false);
+  useEffect(() => {
+    if (isLoading || touched || !token) return;
+    setTouched(true);
+    touchSession({ sessionToken: token })
+      .then(({ valid }) => {
+        if (!valid) persistToken(null);
+      })
+      .catch(() => {});
+  }, [isLoading, touched, token, touchSession, persistToken]);
 
   const login = useCallback(
     async (totpCode: string) => {

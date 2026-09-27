@@ -18,7 +18,8 @@ export const getSummary = query({
     const currencyCtx = await getCurrencyContext(ctx);
     const transactions = await getEffectiveTransactionsInRangeRaw(ctx, start.getTime(), end.getTime());
 
-    const converted = transactions.map((tx) => ({
+    // Money lent/borrowed isn't spending or income — keep it out of reports.
+    const converted = transactions.filter((tx) => tx.category !== "LOAN").map((tx) => ({
       amount: toPrimary(tx.amount, tx.currency, currencyCtx),
       type: tx.type,
       category: tx.category,

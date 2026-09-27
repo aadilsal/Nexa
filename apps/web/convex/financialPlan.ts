@@ -13,7 +13,7 @@ import { getDekForRead, getOrCreateDekForAction } from "./lib/dek";
 const categoryValidator = v.union(
   v.literal("FOOD"), v.literal("FUEL"), v.literal("SHOPPING"), v.literal("ENTERTAINMENT"),
   v.literal("UTILITIES"), v.literal("HEALTHCARE"), v.literal("TRANSPORT"), v.literal("HOUSING"),
-  v.literal("EDUCATION"), v.literal("CHARITY"), v.literal("INVESTMENT"), v.literal("INCOME"),
+  v.literal("EDUCATION"), v.literal("CHARITY"), v.literal("INVESTMENT"), v.literal("INCOME"), v.literal("LOAN"),
   v.literal("OTHER"),
 );
 
@@ -42,6 +42,7 @@ export const list = query({
           category: e.category,
           currency: e.currency,
           autoLogOnCycleStart: e.autoLogOnCycleStart ?? false,
+          dueDay: e.dueDay ?? null,
           expectedAmount: await decryptNumber(e.encryptedExpectedAmount, dek),
         })),
       ),
@@ -66,6 +67,7 @@ export const _insertFixedExpense = internalMutation({
     currency: v.string(),
     encryptedExpectedAmount: v.string(),
     autoLogOnCycleStart: v.optional(v.boolean()),
+    dueDay: v.optional(v.number()),
   },
   handler: async (ctx, args) => ctx.db.insert("fixedExpenses", { ...args, createdAt: Date.now() }),
 });
@@ -78,6 +80,7 @@ export const createFixedExpense = action({
     currency: v.string(),
     expectedAmount: v.number(),
     autoLogOnCycleStart: v.optional(v.boolean()),
+    dueDay: v.optional(v.number()),
   },
   handler: async (ctx, { sessionToken, expectedAmount, ...input }): Promise<{ id: Id<"fixedExpenses">; name: string }> => {
     await ctx.runQuery(internal.lib.session._requireSession, { sessionToken });
@@ -109,6 +112,16 @@ export const updateFixedExpense = action({
       encryptedExpectedAmount: await encryptNumber(expectedAmount, dek),
     });
     return { id };
+  },
+});
+
+/** Day of month a bill is due (1–31), or null to clear — drives the "due tomorrow" reminder. */
+export const setFixedExpenseDueDay = mutation({
+  args: { sessionToken: v.string(), id: v.id("fixedExpenses"), dueDay: v.union(v.number(), v.null()) },
+  handler: async (ctx, { sessionToken, id, dueDay }) => {
+    await requireSession(ctx, sessionToken);
+    if (dueDay !== null && !(Number.isInteger(dueDay) && dueDay >= 1 && dueDay <= 31)) throw new Error("Due day must be 1–31.");
+    await ctx.db.patch(id, { dueDay: dueDay ?? undefined });
   },
 });
 

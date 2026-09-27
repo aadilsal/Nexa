@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { PageShell, SettingsGroup, SettingsRow } from "@/components/layouts/surface";
 import { api } from "@/convex/_generated/api";
 import { useSession } from "@/lib/session";
-import { track } from "@nexa/analytics/react";
 
 // Account deletion is out of scope for this cutover (single-owner app, no self-serve
 // deletion flow ported) — export only.
@@ -18,7 +17,6 @@ export default function DataPage() {
   async function downloadJson() {
     if (!token) return;
     const data = await convex.query(api.export.exportJson, { sessionToken: token });
-    track("data_exported", { format: "json" });
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -32,7 +30,6 @@ export default function DataPage() {
   async function downloadCsv() {
     if (!token) return;
     const csv = await convex.query(api.export.exportCsv, { sessionToken: token });
-    track("data_exported", { format: "csv" });
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -44,7 +41,7 @@ export default function DataPage() {
   }
 
   return (
-    <PageShell title="Data & privacy" description="Export your records." backHref="/profile" backLabel="Profile" narrow>
+    <PageShell title="Data & privacy" description="Export your records." backHref="/profile" backLabel="Settings" narrow>
       <SettingsGroup label="Export" description="Download all your financial records.">
         <SettingsRow>
           <div className="flex flex-wrap gap-2">

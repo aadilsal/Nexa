@@ -1,14 +1,12 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { ContentSection, StatStrip } from "@/components/layouts/surface";
+import { StatStrip } from "@/components/layouts/surface";
 import { CategoryBreakdownList } from "@/components/reports/category-breakdown-list";
 import { SpendingTrendChart } from "@/components/reports/spending-trend-chart";
 import { api } from "@/convex/_generated/api";
 import { useSession } from "@/lib/session";
 import { useCurrency } from "@/lib/currency";
-import { cn } from "@/lib/utils";
-import { CATEGORY_LABELS, type Category } from "@nexa/shared";
 import type { ReportPeriod } from "@/lib/report-period";
 
 export function PeriodSummaryView({ period, date }: { period: ReportPeriod; date?: number }) {
@@ -19,54 +17,36 @@ export function PeriodSummaryView({ period, date }: { period: ReportPeriod; date
 
   if (data === undefined) {
     return (
-      <div className="space-y-6">
-        <div className="h-24 animate-pulse rounded-xl bg-muted/40" />
-        <div className="h-40 animate-pulse rounded-xl bg-muted/40" />
+      <div className="space-y-3">
+        <div className="h-20 animate-pulse rounded-2xl bg-card" />
+        <div className="h-48 animate-pulse rounded-2xl bg-card" />
       </div>
     );
   }
 
-  const largestExpense = data.largestExpense as { amount: number; category: Category; description: string | null } | null;
-
   return (
     <div className="space-y-8">
-      <div className="space-y-3">
-        <StatStrip
-          items={[
-            { label: "Income", value: formatAmount(data.income) },
-            { label: "Spent", value: formatAmount(data.expenses) },
-            { label: "Saved", value: formatAmount(data.saved), valueClassName: cn(data.saved >= 0 ? "text-primary" : "text-destructive") },
-          ]}
-        />
-      </div>
+      <StatStrip
+        items={[
+          { label: "Income", value: formatAmount(data.income), valueClassName: "text-financial-positive" },
+          { label: "Spent", value: formatAmount(data.expenses) },
+          { label: "Saved", value: formatAmount(data.saved), valueClassName: data.saved >= 0 ? "text-primary" : "text-financial-negative" },
+        ]}
+      />
 
       {data.trend.some((bucket) => bucket.expenses > 0) ? (
-        <ContentSection title="Spending trend">
-          <SpendingTrendChart data={data.trend} formatAmount={formatAmount} />
-        </ContentSection>
-      ) : null}
-
-      <ContentSection title="Spending by category">
-        <CategoryBreakdownList byCategory={data.byCategory} formatAmount={formatAmount} />
-      </ContentSection>
-
-      {largestExpense ? (
-        <ContentSection title="Largest expense">
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <span>
-              {largestExpense.description ? (
-                <>
-                  {largestExpense.description}
-                  <span className="ml-2 text-muted-foreground">{CATEGORY_LABELS[largestExpense.category]}</span>
-                </>
-              ) : (
-                CATEGORY_LABELS[largestExpense.category]
-              )}
-            </span>
-            <span className="font-mono font-medium tabular-nums">{formatAmount(largestExpense.amount)}</span>
+        <section>
+          <h2 className="mb-3 px-1 text-base font-semibold tracking-tight">Spending over time</h2>
+          <div className="rounded-2xl bg-card p-4 shadow-card">
+            <SpendingTrendChart data={data.trend} formatAmount={formatAmount} />
           </div>
-        </ContentSection>
+        </section>
       ) : null}
+
+      <section>
+        <h2 className="mb-3 px-1 text-base font-semibold tracking-tight">By category</h2>
+        <CategoryBreakdownList byCategory={data.byCategory} formatAmount={formatAmount} />
+      </section>
     </div>
   );
 }

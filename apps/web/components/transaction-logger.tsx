@@ -15,7 +15,6 @@ import { TransactionTypeSelect } from "@/components/transaction-type-select";
 import { api } from "@/convex/_generated/api";
 import { useSession } from "@/lib/session";
 import { useCurrency } from "@/lib/currency";
-import { track } from "@nexa/analytics/react";
 import { cn } from "@/lib/utils";
 import { showTransactionInsightToast } from "@/components/notifications/transaction-insight-toast";
 
@@ -83,7 +82,6 @@ export function TransactionLogger() {
       });
       setRawInput("");
       setPreview(null);
-      track("transaction_logged", { type: data.transaction.type === "INCOME" ? "income" : "expense" });
       const txCurrency = (data.transaction.currency as CurrencyCode | undefined) ?? currency;
       const amountPrefix = data.transaction.type === "INCOME" ? "+" : "−";
       showTransactionInsightToast({

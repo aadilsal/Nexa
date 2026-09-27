@@ -16,12 +16,22 @@ import {
   sumCharity,
 } from "./safe-to-spend.js";
 import { detectSpendingTrends } from "./spending-trend.js";
+import { separateLoans } from "./loans.js";
 import type { EngineInput, EngineOutput } from "./types.js";
 import { calculateVariance } from "./variance.js";
 import { calculatePredictedMonthlyExpenses } from "./expenses.js";
 import { getTotalCycleDays } from "./utils.js";
 
-export function calculateEngineOutput(input: EngineInput): EngineOutput {
+export function calculateEngineOutput(rawInput: EngineInput): EngineOutput {
+  // Money lent/borrowed moves cash but isn't spending or income: keep it out of every statistic
+  // and fold its net flow into the starting balance so cash on hand stays exact.
+  const { regular, netLoanFlow } = separateLoans(rawInput.transactions);
+  const input: EngineInput = {
+    ...rawInput,
+    transactions: regular,
+    cycle: { ...rawInput.cycle, startingBalance: rawInput.cycle.startingBalance + netLoanFlow },
+    historicalCycles: rawInput.historicalCycles.map((c) => ({ ...c, transactions: separateLoans(c.transactions).regular })),
+  };
   const today = input.today ?? new Date();
   const recurringTotal = input.fixedExpenses.reduce(
     (s, e) => s + e.expectedAmount,

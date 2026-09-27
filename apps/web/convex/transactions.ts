@@ -97,6 +97,10 @@ export const create = action({
       },
     });
 
+    if (parsed.type === "EXPENSE") {
+      await ctx.scheduler.runAfter(0, internal.planning._checkBudget, { category: parsed.category });
+    }
+
     const diff = await ctx.runQuery(internal.engine._diffForNewTransaction, {});
 
     return {
@@ -144,7 +148,7 @@ export const history = query({
     const { start, end } = getPeriodBounds(validPeriod, reference);
     const cat = category && (CATEGORIES as readonly string[]).includes(category) ? (category as Category) : undefined;
 
-    const size = Math.min(100, Math.max(1, pageSize ?? 25));
+    const size = Math.min(1000, Math.max(1, pageSize ?? 25)); // Activity grows pageSize for "Show more"
     const pg = Math.max(1, page ?? 1);
 
     const transactions = await getEffectiveTransactionsInRangeRaw(ctx, start.getTime(), end.getTime());

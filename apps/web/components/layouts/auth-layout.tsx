@@ -1,4 +1,3 @@
-import { ThemeToggle } from "@/components/theme-toggle";
 import { NexaLogo } from "@/components/nexa-logo";
 import { BRAND } from "@/lib/brand";
 
@@ -10,7 +9,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
         <div className="mx-auto w-full max-w-sm lg:w-96">
           <div className="mb-8 flex items-center justify-between">
             <NexaLogo variant="nav" height={36} />
-            <ThemeToggle />
+
           </div>          {children}
         </div>
       </div>

@@ -1,110 +1,63 @@
 ﻿@import "tailwindcss";
 
-/* Nexa Design System — docs/design-system/ */
+/* Nexa design system — one light theme. Modern fintech: off-white canvas, white cards,
+   near-black type, a single indigo accent, green for money in, rose for money out.
+   All text pairs meet WCAG AA on their backgrounds. */
 
 :root {
-  --primary: #5e6ad2;
+  color-scheme: light;
+  --primary: #4f46e5;
   --primary-foreground: #ffffff;
-  --primary-muted: #e8ebfa;
-  --background: #f4f4f6;
-  --foreground: #09090b;
+  --primary-muted: #eef0ff;
+  --background: #f5f6f8;
+  --foreground: #0b1220;
   --card: #ffffff;
-  --card-foreground: #09090b;
+  --card-foreground: #0b1220;
   --popover: #ffffff;
-  --popover-foreground: #09090b;
-  --secondary: #ececef;
-  --secondary-foreground: #18181b;
-  --muted: #eaeaea;
-  --muted-foreground: #52525b;
-  --accent: #e4e4e8;
-  --accent-foreground: #18181b;
-  --destructive: #dc2626;
+  --popover-foreground: #0b1220;
+  --secondary: #eef0f3;
+  --secondary-foreground: #0b1220;
+  --muted: #eef0f3;
+  --muted-foreground: #5b6475;
+  --accent: #eef0f3;
+  --accent-foreground: #0b1220;
+  --destructive: #be123c;
   --destructive-foreground: #ffffff;
-  --success: #059669;
+  --success: #047857;
   --success-foreground: #ffffff;
-  --warning: #d97706;
+  --warning: #b45309;
   --warning-foreground: #ffffff;
-  --info: #2563eb;
+  --info: #1d4ed8;
   --info-foreground: #ffffff;
-  --financial-positive: #059669;
-  --financial-negative: #dc2626;
-  --financial-neutral: #71717a;
-  --border: #d4d4d8;
-  --input: #d4d4d8;
-  --ring: #5e6ad2;
-  --radius: 0.75rem;
-  --chart-1: #5e6ad2;
-  --chart-2: #059669;
+  --financial-positive: #047857;
+  --financial-negative: #be123c;
+  --financial-neutral: #5b6475;
+  --border: #e4e7ec;
+  --input: #d9dde4;
+  --ring: #4f46e5;
+  --radius: 1rem;
+  --chart-1: #4f46e5;
+  --chart-2: #047857;
   --chart-3: #d97706;
-  --chart-4: #2563eb;
+  --chart-4: #0891b2;
   --chart-5: #9333ea;
   --sidebar: #ffffff;
-  --sidebar-foreground: #09090b;
-  --sidebar-primary: #5e6ad2;
+  --sidebar-foreground: #0b1220;
+  --sidebar-primary: #4f46e5;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f4f4f6;
-  --sidebar-accent-foreground: #18181b;
-  --sidebar-border: #d4d4d8;
-  --sidebar-ring: #5e6ad2;
-  --surface-2: #fafafa;
+  --sidebar-accent: #eef0ff;
+  --sidebar-accent-foreground: #4f46e5;
+  --sidebar-border: #e4e7ec;
+  --sidebar-ring: #4f46e5;
+  --surface-2: #f9fafb;
   --surface-3: #ffffff;
-  --section: #ececef;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.06);
-  --shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.dark {
-  --primary: #7c85e3;
-  --primary-foreground: #ffffff;
-  --primary-muted: #1e2040;
-  --background: #0c0c0e;
-  --foreground: #fafafa;
-  --card: #131316;
-  --card-foreground: #fafafa;
-  --popover: #1a1a1f;
-  --popover-foreground: #fafafa;
-  --secondary: #1a1a1f;
-  --secondary-foreground: #fafafa;
-  --muted: #1a1a1f;
-  --muted-foreground: #a1a1aa;
-  --accent: #222228;
-  --accent-foreground: #fafafa;
-  --destructive: #f87171;
-  --destructive-foreground: #450a0a;
-  --success: #34d399;
-  --success-foreground: #052e1c;
-  --warning: #fbbf24;
-  --warning-foreground: #451a03;
-  --info: #60a5fa;
-  --info-foreground: #172554;
-  --financial-positive: #34d399;
-  --financial-negative: #f87171;
-  --financial-neutral: #a1a1aa;
-  --border: #2e2e38;
-  --input: #2e2e38;
-  --ring: #7c85e3;
-  --chart-1: #7c85e3;
-  --chart-2: #34d399;
-  --chart-3: #fbbf24;
-  --chart-4: #60a5fa;
-  --chart-5: #c084fc;
-  --sidebar: #0c0c0e;
-  --sidebar-foreground: #fafafa;
-  --sidebar-primary: #7c85e3;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1a1f;
-  --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: #2e2e38;
-  --sidebar-ring: #7c85e3;
-  --surface-2: #1a1a1f;
-  --surface-3: #222228;
-  --section: #141418;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(0, 0, 0, 0.3);
-  --shadow-floating: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --section: #eef0f3;
+  --hero-from: #0b1220;
+  --hero-to: #312e81;
+  --shadow-sm: 0 1px 2px rgba(11, 18, 32, 0.05);
+  --shadow-md: 0 4px 12px rgba(11, 18, 32, 0.07);
+  --shadow-card: 0 1px 2px rgba(11, 18, 32, 0.04), 0 2px 8px rgba(11, 18, 32, 0.04);
+  --shadow-floating: 0 12px 32px rgba(11, 18, 32, 0.12), 0 2px 8px rgba(11, 18, 32, 0.06);
 }
 
 @theme inline {
@@ -212,4 +165,33 @@ body {
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* Home-screen app polish: no 300ms tap delay, no grey tap flash. */
+a,
+button,
+[role="button"],
+input,
+select,
+textarea,
+label {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Dark hero surface for the one number that matters most on a screen. */
+.bg-hero {
+  background: radial-gradient(120% 120% at 100% 0%, var(--hero-to) 0%, var(--hero-from) 60%);
+}
+
+/* iPhone notch / home-indicator insets (viewport-fit=cover). */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pb-nav {
+  /* bottom tab bar (64px) + home indicator + breathing room */
+  padding-bottom: calc(88px + env(safe-area-inset-bottom));
 }
