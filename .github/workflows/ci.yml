@@ -10,6 +10,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      # Public Convex URL (it ships in the browser bundle anyway). The web build refuses to
+      # compile without it, so CI needs the same value Vercel has.
+      NEXT_PUBLIC_CONVEX_URL: https://unique-buzzard-147.convex.cloud
+
     steps:
       - uses: actions/checkout@v4
 
