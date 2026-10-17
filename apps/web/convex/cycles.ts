@@ -136,7 +136,7 @@ async function persistCycleGoalProgress(ctx: ActionCtx, cycleId: Id<"financialCy
   const goals: Doc<"goals">[] = await ctx.runQuery(internal.goals._listActive, {});
   if (goals.length === 0) return;
 
-  const transactions = await ctx.runQuery(api.ledger.getEffectiveTransactions, { cycleId });
+  const transactions = await ctx.runQuery(internal.ledger.getEffectiveTransactions, { cycleId });
 
   const engineGoals = await Promise.all(
     goals.map(async (g: Doc<"goals">) => ({
@@ -205,7 +205,7 @@ export async function ensureCurrentCycleImpl(ctx: ActionCtx): Promise<{ cycleId:
       const startingBalance = cycle.encryptedStartingBalance
         ? await decryptNumber(cycle.encryptedStartingBalance, dek)
         : 0;
-      const transactions = await ctx.runQuery(api.ledger.getEffectiveTransactions, {
+      const transactions = await ctx.runQuery(internal.ledger.getEffectiveTransactions, {
         cycleId: cycle._id,
       });
       let income = 0;

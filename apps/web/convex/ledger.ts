@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import type { ActionCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -79,6 +79,8 @@ export async function appendEvent(
     eventType: "CREATE" | "CORRECTION" | "DELETE";
     originalEventId?: Id<"transactionEvents">;
     payload: TransactionPayload;
+    /** Backfill only: record the original time (e.g. when a bank alert arrived). */
+    createdAtOverride?: number;
   },
 ): Promise<{ eventId: Id<"transactionEvents">; createdAt: number }> {
   const dek = await getOrCreateDekForAction(ctx);
@@ -88,6 +90,7 @@ export async function appendEvent(
     eventType: args.eventType,
     originalEventId: args.originalEventId,
     encryptedPayload,
+    createdAtOverride: args.createdAtOverride,
   });
 }
 
@@ -173,7 +176,8 @@ export async function getEffectiveTransactionsInRangeRaw(ctx: QueryCtx, start: n
 }
 
 /** Fully reactive — decryption is deterministic, safe in a plain query. */
-export const getEffectiveTransactions = query({
+// Internal only: returns decrypted transactions, so never expose without a session check.
+export const getEffectiveTransactions = internalQuery({
   args: { cycleId: v.id("financialCycles") },
   handler: async (ctx, { cycleId }) => getEffectiveTransactionsRaw(ctx, cycleId),
 });
@@ -183,7 +187,7 @@ export const getEffectiveTransactions = query({
  * plus ALL correction/delete events unbounded (cheap at personal-app scale) so a late
  * correction/delete on an in-range transaction is still applied correctly.
  */
-export const getEffectiveTransactionsInRange = query({
+export const getEffectiveTransactionsInRange = internalQuery({
   args: { start: v.number(), end: v.number() },
   handler: async (ctx, { start, end }) => getEffectiveTransactionsInRangeRaw(ctx, start, end),
 });

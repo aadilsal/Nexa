@@ -54,3 +54,10 @@ A Claude cloud routine ("Nexa: yearly Pakistan tax rates update", runs 2/5 July 
 ## CI
 
 GitHub Actions (`.github/workflows/ci.yml`) builds the packages, runs the engine tests and builds the web app on every push to `main`.
+
+## Maintenance commands
+
+Run from `apps/web` (admin key in `.env.local`):
+
+- **Backfill alerts missed during downtime**: `npx convex run ingest:_backfill '{"messages":[{"source":"email","receivedAt":<ms>,"text":"<subject>\n<body>"}]}'`. Same parser and duplicate protection as `/ingest`, dated to `receivedAt`, no push notifications.
+- **Remove wrongly imported transactions** (e.g. a transfer between your own accounts) and fix carried balances: `npx convex run maintenance:_removeTransactions '{"eventIds":["..."],"addOwnerAlias":"NAME"}'`.

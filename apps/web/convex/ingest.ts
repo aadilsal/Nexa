@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { action, httpAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { action, httpAction, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import type { ActionCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { parseBankMessage } from "@nexa/finance-engine";
@@ -161,18 +162,33 @@ export const ingestHttp = httpAction(async (ctx, request) => {
   if (!text || text.length > MAX_TEXT_LENGTH) return json({ error: "text is required" }, 400);
   const source = body.source === "email" ? "email" : "sms";
 
+  const result = await processAlert(ctx, { source, text, ownerAliases: config.ownerAliases, notifyUser: true });
+  return json(result, result.status === "error" ? 500 : 200);
+});
+
+type AlertResult =
+  | { status: "ignored"; reason: string }
+  | { status: "duplicate" }
+  | { status: "error"; error: string }
+  | { status: "logged"; type: string; amount: number; currency: string; description: string };
+
+/** Parse one bank alert and log it (shared by POST /ingest and the backfill action). */
+async function processAlert(
+  ctx: ActionCtx,
+  { source, text, ownerAliases, notifyUser, receivedAt }: { source: "sms" | "email"; text: string; ownerAliases: string[]; notifyUser: boolean; receivedAt?: number },
+): Promise<AlertResult> {
   const messageHash = await sha256Hex(`${source}:${text}`);
   const primaryCurrency = await ctx.runQuery(internal.engine._getPrimaryCurrency, {});
-  const parsed = parseBankMessage(text, { ownerAliases: config.ownerAliases, defaultCurrency: primaryCurrency });
+  const parsed = parseBankMessage(text, { ownerAliases, defaultCurrency: primaryCurrency });
 
   if (parsed.status === "ignored") {
     await ctx.runMutation(internal.ingest._recordIgnored, { source, messageHash, reason: parsed.reason });
-    return json({ status: "ignored", reason: parsed.reason });
+    return { status: "ignored", reason: parsed.reason };
   }
 
   const matchKey = await sha256Hex(`${parsed.type}:${parsed.amount}:${parsed.currency}`);
   const claimId = await ctx.runMutation(internal.ingest._claim, { source, messageHash, matchKey });
-  if (!claimId) return json({ status: "duplicate" });
+  if (!claimId) return { status: "duplicate" };
 
   try {
     await ensureCurrentCycleImpl(ctx);
@@ -189,20 +205,38 @@ export const ingestHttp = httpAction(async (ctx, request) => {
         currency: parsed.currency,
         notes: `Auto-imported from ${source === "sms" ? "SMS" : "email"}`,
       },
+      createdAtOverride: receivedAt,
     });
     await ctx.runMutation(internal.ingest._attachEvent, { id: claimId, eventId: event.eventId });
-    await notify(ctx, {
-      title: `${parsed.type === "INCOME" ? "Received" : "Spent"} ${parsed.currency} ${parsed.amount.toLocaleString("en-PK")}`,
-      body: `${parsed.description} · logged from ${source === "sms" ? "SMS" : "email"}. Tap to review.`,
-      url: "/reports",
-    });
+    if (notifyUser) {
+      await notify(ctx, {
+        title: `${parsed.type === "INCOME" ? "Received" : "Spent"} ${parsed.currency} ${parsed.amount.toLocaleString("en-PK")}`,
+        body: `${parsed.description} · logged from ${source === "sms" ? "SMS" : "email"}. Tap to review.`,
+        url: "/reports",
+      });
+    }
     if (parsed.type === "EXPENSE") {
       await ctx.scheduler.runAfter(0, internal.planning._checkBudget, { category: parsed.category });
     }
   } catch (err) {
     await ctx.runMutation(internal.ingest._release, { id: claimId });
-    return json({ error: err instanceof Error ? err.message : "could not log transaction" }, 500);
+    return { status: "error", error: err instanceof Error ? err.message : "could not log transaction" };
   }
 
-  return json({ status: "logged", type: parsed.type, amount: parsed.amount, currency: parsed.currency, description: parsed.description });
+  return { status: "logged", type: parsed.type, amount: parsed.amount, currency: parsed.currency, description: parsed.description };
+}
+
+/** Admin-only (npx convex run): import alerts missed while the backend was down, dated to when
+ *  they arrived, without push notifications. Same parser and duplicate protection as /ingest. */
+export const _backfill = internalAction({
+  args: { messages: v.array(v.object({ source: sourceValidator, text: v.string(), receivedAt: v.number() })) },
+  handler: async (ctx, { messages }) => {
+    const config = await ctx.runQuery(internal.ingest._getConfig, {});
+    const results: Array<AlertResult & { receivedAt: number }> = [];
+    for (const m of [...messages].sort((a, b) => a.receivedAt - b.receivedAt)) {
+      const r = await processAlert(ctx, { source: m.source, text: m.text.trim(), ownerAliases: config?.ownerAliases ?? [], notifyUser: false, receivedAt: m.receivedAt });
+      results.push({ ...r, receivedAt: m.receivedAt });
+    }
+    return results;
+  },
 });
