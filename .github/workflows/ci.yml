@@ -13,7 +13,8 @@ jobs:
     env:
       # Public Convex URL (it ships in the browser bundle anyway). The web build refuses to
       # compile without it, so CI needs the same value Vercel has.
-      NEXT_PUBLIC_CONVEX_URL: https://unique-buzzard-147.convex.cloud
+      NEXT_PUBLIC_CONVEX_URL: https://nexa-api.51-170-90-86.sslip.io
+      NEXT_PUBLIC_CONVEX_SITE_URL: https://nexa-site.51-170-90-86.sslip.io
 
     steps:
       - uses: actions/checkout@v4

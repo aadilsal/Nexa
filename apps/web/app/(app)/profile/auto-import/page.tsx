@@ -10,7 +10,15 @@ import { api } from "@/convex/_generated/api";
 import { useSession } from "@/lib/session";
 import { buildGmailAppsScript } from "@/lib/gmail-apps-script";
 
-const ENDPOINT = `${(process.env.NEXT_PUBLIC_CONVEX_URL ?? "").trim().replace(/\/+$/, "").replace(/\.convex\.cloud$/, ".convex.site")}/ingest`;
+// HTTP actions live on the Convex "site" URL. Self-hosted backends set it explicitly; Convex
+// cloud URLs can be derived (x.convex.cloud -> x.convex.site).
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_CONVEX_SITE_URL ??
+  (process.env.NEXT_PUBLIC_CONVEX_URL ?? "").trim().replace(/\/+$/, "").replace(/\.convex\.cloud$/, ".convex.site")
+)
+  .trim()
+  .replace(/\/+$/, "");
+const ENDPOINT = `${SITE_URL}/ingest`;
 
 const STATUS_LABEL = { LOGGED: "Logged", IGNORED: "Skipped", DUPLICATE: "Duplicate" } as const;
 

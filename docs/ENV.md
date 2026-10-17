@@ -1,94 +1,29 @@
 # Environment variables
 
-**Single file:** copy `.env.example` to `.env` at the **repo root** only.
+## Web app (Vercel project env, and `apps/web/.env.local` for local dev)
 
-Do not add `.env` under `apps/api`, `apps/web`, or other packages — Prisma, NestJS, and Next.js are configured to read the root file.
+| Name | Example | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_CONVEX_URL` | `https://nexa-api.51-170-90-86.sslip.io` | Convex client/API URL (no trailing slash). Build fails without it. |
+| `NEXT_PUBLIC_CONVEX_SITE_URL` | `https://nexa-site.51-170-90-86.sslip.io` | Convex HTTP actions URL, used to show the auto-import endpoint |
 
-Both `apps/api` and `apps/web` load it automatically when you run `pnpm dev`, `pnpm db:push`, etc.
+## Convex CLI (`apps/web/.env.local`, git-ignored)
 
-## Required for local development
+| Name | Purpose |
+|---|---|
+| `CONVEX_SELF_HOSTED_URL` | `https://nexa-api.51-170-90-86.sslip.io` |
+| `CONVEX_SELF_HOSTED_ADMIN_KEY` | Admin key from `generate_admin_key.sh` on the VM. Secret. |
 
-| Variable | Used by | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | API, Web (Better Auth) | PostgreSQL connection for finance DB (`nexa`) |
-| `ANALYTICS_DATABASE_URL` | API | PostgreSQL connection for analytics/admin DB (`nexa_analytics`) |
-| `REDIS_URL` | API | Redis for cache, rate limits, MFA sessions |
-| `KEK` | API | 32-byte hex key-encryption-key for envelope encryption |
-| `BETTER_AUTH_SECRET` | Web | Session signing secret (min 32 chars) |
-| `BETTER_AUTH_URL` | Web | Public URL of the web app (e.g. `http://localhost:3000`) |
+## Convex server env (`npx convex env set NAME value`)
 
-## Auth & security
+| Name | Purpose |
+|---|---|
+| `KEK` | 64-hex key-encryption key that unlocks all stored amounts. Secret; back it up off the VM. |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push keys. Changing them invalidates existing device subscriptions. |
+| `ANTHROPIC_API_KEY` | Optional; only used if AI features are called. |
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PASSKEY_RP_ID` | `localhost` | WebAuthn relying party ID (use your domain in production) |
-| `ADMIN_SEED_EMAIL` | — | Email of user to promote to `SUPER_ADMIN` on API startup |
-| `ADMIN_MFA_REQUIRED` | `false` | Set `true` to require TOTP for all admin roles |
-| `CRON_SECRET` | — | Shared secret for cron endpoints (`x-cron-secret` header) |
+## VM (`/opt/nexa-convex/.env`)
 
-## Analytics (privacy-first, self-hosted)
-
-| Variable | Description |
-|----------|-------------|
-| `ANALYTICS_USER_HASH_SALT` | Salt for one-way user ID hashing in analytics DB |
-| `ANALYTICS_EVENT_SIGNING_SECRET` | HMAC key for signed event batches from the web SDK |
-| `NEXT_PUBLIC_APP_VERSION` | App version sent with analytics events |
-
-PostHog is **not** used. Events flow through `@nexa/analytics` → `POST /api/v1/analytics/events/batch`.
-
-## AI & email
-
-| Variable | Description |
-|----------|-------------|
-| `GROQ_API_KEY` | Groq API key for AI explanations (optional in dev) |
-| `GROQ_MODEL` | Model id (default: `llama-3.3-70b-versatile`) |
-| `RESEND_API_KEY` | Resend API key for transactional + weekly review emails |
-| `RESEND_FROM` | From address for outbound email |
-
-## Server URLs
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `API_PORT` | `4000` | NestJS listen port |
-| `CORS_ORIGIN` | `http://localhost:3000` | Comma-separated allowed browser origins (www/apex pairs auto-expanded) |
-| `TRUSTED_ORIGINS` | — | Extra Better Auth origins (comma-separated), e.g. preview URLs |
-| `CORS_ALLOW_LOCALHOST` | — | Set `true` on Render to allow `http://localhost:*` when developing against production API |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:4000/api/v1` | API base URL for the web client |
-| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | Public web app URL |
-
-## Cron jobs (GitHub Actions)
-
-Scheduled in `.github/workflows/cron.yml` when `CRON_SECRET` is set:
-
-| Endpoint | Schedule | Purpose |
-|----------|----------|---------|
-| `POST /api/v1/reviews/weekly/send` | Mon 08:00 UTC | Weekly review emails |
-| `POST /api/v1/account/purge-expired` | Daily 03:00 UTC | Soft-deleted account purge |
-| `POST /api/v1/admin/sync/user-directory` | Daily 04:00 UTC | Sync user directory to analytics DB |
-| `POST /api/v1/admin/aggregate/daily` | Daily 04:30 UTC | DAU/WAU/MAU metrics |
-
-All cron calls require header: `x-cron-secret: $CRON_SECRET`.
-
-## Rate limits
-
-| Endpoint | Limit | Scope |
-|----------|-------|-------|
-| Auth sign-in/sign-up | 5/min | IP (Next.js middleware) |
-| Transactions create | 120/min | User |
-| Dashboard reads | 60/min | User |
-| AI chat | 30/min | User |
-| Simulations | 60/min | User |
-| Data export | 5/hour | User |
-
-## Production secrets (GitHub Actions)
-
-| Secret | Purpose |
-|--------|---------|
-| `RENDER_DEPLOY_HOOK` | Trigger API deploy on Render |
-| `NEXT_PUBLIC_API_URL` | Build-time API URL for web |
-| `NEXT_PUBLIC_APP_URL` | Build-time app URL for web |
-| `CRON_SECRET` | Cron workflow authentication |
-
-## Google OAuth
-
-**Not enabled.** Auth is email/password, magic link, and passkeys only.
+| Name | Purpose |
+|---|---|
+| `INSTANCE_SECRET` | Convex instance secret (admin keys are derived from it). Generated on first setup. |

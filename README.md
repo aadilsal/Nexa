@@ -1,228 +1,64 @@
 # Nexa
 
-**Spend with confidence.**
+A personal finance app for one person: track every rupee, see what's safe to spend today, and save towards goals. It is a private, single-owner tool, not a SaaS product: there is no signup, no other users and no analytics.
 
-Nexa is a privacy-first financial intelligence platform built for Pakistanis.
+## What it does
 
-> **Know what you can spend. Stay on track.**
+- **Home**: safe-to-spend today, cash on hand, this cycle's income / spending / savings rate, top categories this month, goals and recent transactions.
+- **Activity**: month or year view with spending trend, category breakdown and every transaction grouped by day (tap a category icon to recategorise).
+- **Add**: type `Lunch 850`, `Salary 150000` or `Lent Ali 5000`; the category and direction are worked out for you.
+- **Auto-import**: bank and wallet alerts (Meezan, ABL, NayaPay and generic formats) are logged automatically from iPhone SMS (Shortcuts automation) and Gmail (Apps Script). OTPs, promos and transfers between your own accounts are skipped; the same payment arriving by SMS and email is logged once.
+- **Plan**:
+  - Budgets per category with push alerts at 80% and 100%
+  - Subscriptions detected from repeating charges
+  - Lent & borrowed: money to/from people changes cash but never counts as spending or income
+  - Goals and emergency fund
+  - Zakat (Hanafi) calculated from your balance, loans and daily gold/silver prices
+  - Pakistan income tax estimate (salaried, non-salaried, section 154A IT exports) from logged income
+- **Push notifications** (home-screen app): each imported transaction, budget alerts, bills due tomorrow, Zakat date, new-tax-year rate warnings.
+- **Cycles** run payday to payday and roll over automatically, carrying the ending balance forward.
+- Installable as a **PWA** on iPhone (Share → Add to Home Screen).
 
-> **Can I afford this? Nexa knows.**
+## How it runs
 
-Expense logging is how Nexa learns — the product is **intelligent guidance**: Safe To Spend™, purchase simulations, goal tracking, and AI insights grounded in your real numbers.
+| Part | Where | Notes |
+|---|---|---|
+| Web app (Next.js 15) | Vercel, free tier | Projects `web` (web-theta-lyart-46.vercel.app) and `nexa-web` |
+| Backend (Convex, self-hosted) | Oracle Cloud Always Free VM | Docker in `/opt/nexa-convex`, behind the VM's Caddy at `nexa-api.51-170-90-86.sslip.io` and `nexa-site.51-170-90-86.sslip.io` |
+| Backups | Same VM | Nightly 03:30 PKT, 14 kept in `/opt/nexa-convex/backups` |
+| Tax rates | Yearly cloud routine | Adds each new Finance Act's rates to `packages/finance-engine/src/tax.ts` every July |
 
----
+Login is a single owner using an authenticator app code (TOTP); sessions last 90 days and renew on each visit. Financial amounts are encrypted at rest (AES-256-GCM, key-encryption key held as a Convex env var).
 
-## Vision
+See [docs/architecture.md](docs/architecture.md), [docs/DEPLOY.md](docs/DEPLOY.md) and [docs/ENV.md](docs/ENV.md).
 
-Become the first app people open whenever they make a financial decision — not because they enjoy tracking expenses, but because they trust Nexa to guide them.
-
-**Mission:** Help Pakistanis make smarter financial decisions by turning every expense into meaningful, actionable guidance.
-
----
-
-## What Nexa Is — and Isn't
-
-| Nexa is | Nexa is not |
-|---------|-------------|
-| A financial **decision** platform | A generic expense tracker |
-| Engine-driven guidance (PKR, payday cycles, goals) | A budgeting spreadsheet with charts |
-| Privacy-first — encrypted data, no bank linking required | A bank aggregator or wallet |
-| AI that **explains** your numbers | AI that guesses or calculates independently |
-
-Most finance apps answer **"What happened?"** Nexa answers **"What should I do next?"**
-
----
-
-## How Nexa Is Different
-
-**1. Safe To Spend™ — not "remaining budget"**
-
-Instead of showing how much you've spent, Nexa calculates how much you can safely spend *today* without hurting savings, your emergency fund, or goal timelines. Every expense log updates this number instantly.
-
-**2. Finance Engine as single source of truth**
-
-All financial numbers — dashboard, weekly reviews, purchase simulations, AI chat, emails — come from one pure TypeScript engine (`packages/finance-engine`). No duplicated formulas across frontend and backend. No AI hallucinating amounts.
-
-**3. Can I Buy This? — decisions before regret**
-
-Simulate any purchase before you make it. Nexa shows impact on goals, savings rate, and emergency fund — with a clear GO AHEAD or WAIT recommendation and a suggested wait date if needed.
-
-**4. Built for how Pakistan actually works**
-
-PKR-native. Payday-to-payday cycles (salaried or freelancer). Charity tracking. English UI. No dependency on bank APIs or international fintech assumptions.
-
-**5. Privacy by architecture**
-
-Envelope encryption for financial data. Immutable hash-chained ledger. Audit logs. Data export and 30-day grace account deletion. Passkeys, magic links, and session revocation on password reset.
-
-**6. Five-second logging**
-
-Type `Petrol 7550` — preview, confirm, done. Category, amount, and type detected automatically. Immediate feedback on Safe To Spend and health score changes.
-
----
-
-## What's Built (MVP)
-
-The full MVP is implemented across four phases:
-
-| Capability | Highlights |
-|------------|------------|
-| **Onboarding** | Income, fixed expenses, variable estimate, goals, emergency fund — under 5 minutes |
-| **Dashboard** | Safe To Spend™, Financial Health Score (0–100), goal ETAs, variance analysis, today's AI insight |
-| **Transactions** | Natural language parser, immutable ledger, recategorization, post-log STS/health feedback |
-| **Goals** | Priority waterfall, emergency fund, encrypted amounts, on-track / delayed status |
-| **Can I Buy This?** | Purchase simulation with rules R1–R4 and AI explanation |
-| **Financial Chat** | Groq-powered Q&A grounded in engine output — read-only, no invented numbers |
-| **Weekly Review** | In-app review + automated email (React Email design system) |
-| **Profile & Security** | Passkeys, magic link auth, email verification, export (JSON/CSV), account deletion |
-| **Emails** | 36 transactional templates via `@nexa/emails` (React Email + Resend) |
-| **Analytics** | `@nexa/analytics` SDK — privacy-first event tracking |
-| **Deploy** | Docker API image, GitHub Actions CI, Vercel + Render + Neon target stack |
-
----
-
-## Core Philosophy
-
-Nexa never asks: *"How much did you spend?"*
-
-Nexa asks: *"How does this expense affect your future?"*
-
-Every feature, screen, and email follows this mindset — calm, trustworthy, minimal. No casino energy. No crypto hype.
-
----
-
-## Architecture
+## Repo layout
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌─────────────────────┐
-│  Next.js 15  │────▶│  NestJS API  │────▶│  Finance Engine     │
-│  (Vercel)    │     │  (Render)    │     │  v1.0 — Pure TS     │
-└──────────────┘     └──────┬───────┘     └─────────────────────┘
-                            │
-              ┌─────────────┼─────────────┐
-              ▼             ▼             ▼
-         PostgreSQL      Redis         Groq
-         (Neon)       (cache/rate)   (explains only)
+apps/web/                  Next.js app (pages, components) + convex/ (backend functions and schema)
+packages/finance-engine/   Pure, tested money maths: safe-to-spend, cycles, bank-message parser,
+                           loans, subscriptions, spending pace, Zakat, Pakistan income tax
+packages/shared/           Categories, currencies, shared types and schemas
+docs/                      Architecture, deploy and env notes, engine specs
 ```
 
-**Design principles**
+## Local development
 
-- **Engine-first** — One calculation layer; AI never computes financial numbers
-- **Monorepo** — Shared types, Zod schemas, and engine across web and API
-- **Security by default** — Encryption, immutable ledger, audit trail, rate limits
-- **Production-grade** — API versioning, Swagger, CI/CD, structured email system
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| Frontend | Next.js 15, React 19, Tailwind v4, TanStack Query, Motion |
-| Backend | NestJS, Prisma, PostgreSQL (Neon) |
-| Auth | Better Auth — email/password, magic link, passkeys |
-| AI | Groq (Llama 3.3) — explanation layer only |
-| Cache | Redis |
-| Email | Resend + `@nexa/emails` (React Email) |
-| Analytics | `@nexa/analytics` (self-hosted) |
-| Monorepo | Turborepo + pnpm |
-
----
-
-## Project Structure
-
-```
-nexa/
-├── apps/
-│   ├── web/                    # Next.js frontend
-│   └── api/                    # NestJS backend + Prisma
-├── packages/
-│   ├── finance-engine/         # Financial Intelligence Engine v1.0
-│   ├── shared/                 # Zod schemas, constants, types
-│   └── emails/                 # Transactional email design system
-├── docs/                       # PRD, engine spec, architecture
-├── docker/                     # Compose + API Dockerfile
-└── .github/workflows/          # CI/CD
-```
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js 22+ (CI uses Node 24)
-- pnpm 9+
-- Docker (Postgres + Redis)
-
-### Setup
-
-Use **one** env file at the repo root only (`/.env`). Do not create `apps/api/.env` or `apps/web/.env`.
+Requires Node 22+ and pnpm 9.
 
 ```bash
 pnpm install
-cp .env.example .env
-# Set BETTER_AUTH_SECRET, KEK, and DATABASE_URL in .env
-
-docker compose -f docker/docker-compose.yml up -d
-pnpm db:push
-pnpm dev
+pnpm --filter @nexa/shared build && pnpm --filter @nexa/finance-engine build
+cd apps/web
+# .env.local (git-ignored) must point the CLI at the backend, see docs/ENV.md
+pnpm dev            # http://localhost:3000
 ```
 
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:3000 |
-| API | http://localhost:4000/api/v1 |
-| Swagger | http://localhost:4000/api/v1/docs |
-| **DB browser (Adminer)** | http://localhost:8080 |
-| Email preview | `pnpm --filter @nexa/emails preview` |
+Tests: `pnpm --filter @nexa/finance-engine test`
 
-**Browse databases:** open [Adminer](http://localhost:8080) (PostgreSQL — not phpMyAdmin, which is MySQL-only). Login with:
+## Deploying changes
 
-| Field | Value |
-|-------|-------|
-| System | PostgreSQL |
-| Server | `postgres` |
-| Username | `nexa` |
-| Password | `nexa` |
-| Database | `nexa` or `nexa_analytics` |
+- **Frontend**: push to `main`; both Vercel projects rebuild.
+- **Backend functions/schema**: `cd apps/web && npx convex deploy` (uses `.env.local`).
 
-Generate local secrets:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
----
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [Product Requirements Document](./docs/PRD.md) | Product vision, features, user stories |
-| [Finance Engine Specification](./docs/finance-engine-spec.md) | Formulas, rules, engine v1.0.0 |
-| [Technical Architecture](./docs/architecture.md) | System design, APIs, schema, security |
-
----
-
-## Scripts
-
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start all apps in dev mode |
-| `pnpm build` | Build all packages |
-| `pnpm test` | Run tests (finance-engine tests are critical) |
-| `pnpm db:push` | Push Prisma schema to database |
-| `pnpm db:studio` | Open Prisma Studio |
-
----
-
-## Target Audience
-
-Salaried professionals, freelancers, and young professionals in Pakistan earning PKR 50,000–500,000/month — people who want clarity on spending decisions without connecting their bank account or learning spreadsheet budgeting.
-
----
-
-## License
-
-Proprietary. All rights reserved.
+Details, VM operations and restore steps are in [docs/DEPLOY.md](docs/DEPLOY.md).

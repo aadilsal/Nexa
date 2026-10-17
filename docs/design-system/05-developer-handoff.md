@@ -319,5 +319,5 @@ rg "059669|emerald|green-" apps/web
 ## Support
 
 Design system questions: reference `docs/design-system/`  
-Product context: `docs/PRD.md`  
+Product context: `README.md`  
 Engine algorithms: `docs/algorithms-decision-engine-spec.md`
